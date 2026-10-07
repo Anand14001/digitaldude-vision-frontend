@@ -169,7 +169,7 @@ function TaskRow({ task }: { task: TaskListItem }) {
           <span className="block truncate text-xs text-muted">
             <span className="font-mono">{task.reference}</span>
             {task.project
-              ? ` · ${task.project.name} · ${task.project.client.name}`
+              ? ` · ${task.project.name} · ${task.project.client?.name ?? 'Internal'}`
               : task.retainerCycle
                 ? ` · ${task.retainerCycle.retainer.name} · ${task.retainerCycle.label}`
                 : ''}
@@ -301,7 +301,7 @@ function AllTasksView() {
                         <>
                           <span className="block truncate">{task.project.name}</span>
                           <span className="block truncate text-subtle">
-                            {task.project.client.name}
+                            {task.project.client?.name ?? 'Internal'}
                           </span>
                         </>
                       ) : task.retainerCycle ? (

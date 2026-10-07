@@ -345,7 +345,7 @@ export interface TaskListItem {
   status: TaskStatusRef;
   stage: StageRef | null;
   assignee: EmployeeRef | null;
-  project: { id: string; code: string; name: string; client: { name: string } } | null;
+  project: { id: string; code: string; name: string; client: { name: string } | null } | null;
   retainerCycle: {
     id: string;
     label: string;
@@ -479,7 +479,7 @@ export interface Deliverable {
   approvedAt: string | null;
   publishedAt: string | null;
   createdAt: string;
-  project: { id: string; code: string; name: string; client: NamedRef } | null;
+  project: { id: string; code: string; name: string; client: NamedRef | null } | null;
   retainerCycle: { id: string; label: string; retainer: { id: string; name: string; client: NamedRef } } | null;
   versions: DeliverableVersion[];
   approvals: {
@@ -569,7 +569,7 @@ export interface EmployeeDetail extends EmployeeListItem {
       code: string;
       name: string;
       status: ProjectStatus;
-      client: { name: string };
+      client: { name: string } | null;
     };
   }[];
   goals: Goal[];
@@ -855,7 +855,7 @@ export interface DashboardPayload {
       name: string;
       dueDate: string | null;
       health: HealthStatus;
-      client: { name: string };
+      client: { name: string } | null;
       currentStage: { name: string; color: string } | null;
     }[];
     recent: {
@@ -864,7 +864,7 @@ export interface DashboardPayload {
       name: string;
       status: ProjectStatus;
       createdAt: string;
-      client: { name: string };
+      client: { name: string } | null;
     }[];
   };
   team?: {
@@ -1021,7 +1021,7 @@ export interface DeliveryReport {
     code: string;
     name: string;
     daysLate: number;
-    client: { name: string };
+    client: { name: string } | null;
   }[];
 }
 

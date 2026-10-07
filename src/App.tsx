@@ -3,6 +3,7 @@ import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { useAuth } from '@/lib/auth';
 import type { PermissionKey } from '@/types/api';
 import { AppLayout, FullPageLoader, NotFoundPage } from '@/components/layout/AppLayout';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { PortalLayout } from '@/components/layout/PortalLayout';
 import { EmptyState } from '@/components/ui';
 
@@ -106,8 +107,9 @@ export default function App() {
   if (status === 'loading') return <FullPageLoader />;
 
   return (
-    <Suspense fallback={<FullPageLoader />}>
-      <Routes>
+    <ErrorBoundary>
+      <Suspense fallback={<FullPageLoader />}>
+        <Routes>
       {/* ---- public ---- */}
       <Route
         path="/login"
@@ -317,7 +319,8 @@ export default function App() {
         />
         <Route path="*" element={<NotFoundPage />} />
       </Route>
-      </Routes>
-    </Suspense>
+        </Routes>
+      </Suspense>
+    </ErrorBoundary>
   );
 }

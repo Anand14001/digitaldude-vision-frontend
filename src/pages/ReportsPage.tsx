@@ -304,7 +304,7 @@ function DeliveryReportView({ range }: { range: { from: string; to: string } }) 
                     <span className="font-medium text-fg">{project.name}</span>
                     <span className="ml-2 font-mono text-2xs text-subtle">{project.code}</span>
                   </TD>
-                  <TD className="text-muted">{project.client.name}</TD>
+                  <TD className="text-muted">{project.client?.name ?? 'Internal'}</TD>
                   <TD className="text-right font-semibold tabular-nums text-danger">
                     {project.daysLate}
                   </TD>

@@ -160,7 +160,9 @@ function DeliverableCard({
     deliverable.project?.name ??
     `${deliverable.retainerCycle?.retainer.name ?? ''} · ${deliverable.retainerCycle?.label ?? ''}`;
   const client =
-    deliverable.project?.client.name ?? deliverable.retainerCycle?.retainer.client.name;
+    deliverable.project?.client?.name ??
+    deliverable.retainerCycle?.retainer.client.name ??
+    (deliverable.project ? 'Internal' : null);
 
   return (
     <button

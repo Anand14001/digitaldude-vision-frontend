@@ -464,7 +464,7 @@ export function DashboardPage() {
                         {project.name}
                       </span>
                       <span className="block truncate text-xs text-muted">
-                        {project.client.name}
+                        {project.client?.name ?? 'Internal'}
                         {project.currentStage ? ` · ${project.currentStage.name}` : ''}
                       </span>
                     </span>

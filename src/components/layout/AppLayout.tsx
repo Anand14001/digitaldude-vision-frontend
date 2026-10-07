@@ -37,6 +37,7 @@ import { apiGet } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import type { PermissionKey, SidebarBadges } from '@/types/api';
 import { Avatar, Button, Dropdown, DropdownItem, DropdownSeparator } from '../ui';
+import { ErrorBoundary } from '../ErrorBoundary';
 import { NotificationPanel } from './NotificationPanel';
 import { GlobalSearch } from './GlobalSearch';
 
@@ -489,7 +490,10 @@ export function AppLayout() {
 
         <main className="min-w-0 flex-1 overflow-y-auto">
           <div className="mx-auto w-full max-w-[1600px] px-4 py-6 sm:px-6 lg:px-8">
-            <Outlet />
+            {/* Keyed on the path so moving to another screen clears a failure. */}
+            <ErrorBoundary key={location.pathname}>
+              <Outlet />
+            </ErrorBoundary>
           </div>
         </main>
       </div>

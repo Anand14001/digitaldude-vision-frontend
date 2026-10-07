@@ -333,7 +333,8 @@ export function EmployeeDetailPage() {
                           {membership.project.name}
                         </p>
                         <p className="truncate text-2xs text-muted">
-                          {membership.project.client.name} · {membership.project.code}
+                          {membership.project.client?.name ?? 'Internal'} ·{' '}
+                          {membership.project.code}
                         </p>
                       </div>
                       <Badge tone={membership.role === 'LEAD' ? 'primary' : 'neutral'}>
