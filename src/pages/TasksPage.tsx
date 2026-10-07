@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { AlarmClock, CalendarDays, CheckCircle2, Inbox, List, Plus } from 'lucide-react';
 import { apiGet, errorMessage } from '@/lib/api';
@@ -35,8 +35,14 @@ const CATEGORIES = ['TODO', 'IN_PROGRESS', 'BLOCKED', 'REVIEW', 'DONE', 'CANCELL
 export function TasksPage() {
   const { can } = useAuth();
   const [params] = useSearchParams();
+  const { pathname } = useLocation();
   const [view, setView] = useState<'mine' | 'all'>(
-    can('tasks.view.all') && params.get('view') === 'all' ? 'all' : 'mine',
+    // /tasks/my always means the personal queue, whatever the query string says.
+    pathname.endsWith('/my')
+      ? 'mine'
+      : can('tasks.view.all') && params.get('view') === 'all'
+        ? 'all'
+        : 'mine',
   );
   const [composing, setComposing] = useState(false);
 

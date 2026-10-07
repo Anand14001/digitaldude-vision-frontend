@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { addWeeks, format, startOfWeek } from 'date-fns';
 import { Check, ChevronLeft, ChevronRight, Clock, Plus, X } from 'lucide-react';
@@ -29,7 +30,16 @@ import { LogTimeModal } from './TaskDetailPage';
 
 export function TimesheetsPage() {
   const { can } = useAuth();
-  const [tab, setTab] = useState(can('timesheets.log.own') ? 'mine' : 'approvals');
+  const { pathname } = useLocation();
+  // A link to one timesheet is always someone asking for a decision on it.
+  const linkedTab = pathname.endsWith('/my')
+    ? 'mine'
+    : /\/timesheets\/[^/]+$/.test(pathname)
+      ? 'approvals'
+      : null;
+  const [tab, setTab] = useState(
+    linkedTab ?? (can('timesheets.log.own') ? 'mine' : 'approvals'),
+  );
 
   return (
     <div>

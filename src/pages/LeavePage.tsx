@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { differenceInCalendarDays } from 'date-fns';
 import { Check, Palmtree, Plus, X } from 'lucide-react';
@@ -32,7 +33,15 @@ import { LeaveStatusBadge } from '@/components/domain';
 
 export function LeavePage() {
   const { can } = useAuth();
-  const [tab, setTab] = useState(can('leave.request.own') ? 'mine' : 'approvals');
+  const { pathname } = useLocation();
+  const linkedTab = pathname.endsWith('/my')
+    ? 'mine'
+    : pathname.includes('/leave/requests/')
+      ? 'approvals'
+      : null;
+  const [tab, setTab] = useState(
+    linkedTab ?? (can('leave.request.own') ? 'mine' : 'approvals'),
+  );
   const [requesting, setRequesting] = useState(false);
 
   return (

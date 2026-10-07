@@ -29,6 +29,7 @@ default). Sign in with the seeded administrator.
 | `npm run preview` | Serve the built output |
 | `npm run typecheck` | Types only |
 | `npm run sync:contract` | Copy the API's generated contract into `src/types/` |
+| `npm run check:links` | Check every deep link the API sends resolves to a route |
 
 ## Layout
 
@@ -108,6 +109,17 @@ A static bundle. Vercel, Netlify, Cloudflare Pages or any static host works.
 
 Routes are code-split, so the first load carries the shell rather than Settings,
 Reports and the portal.
+
+## Deep links from notifications
+
+The API puts paths like `/performance/my` and `/tasks/${id}` into notifications
+and emails. Those are strings in one codebase and JSX routes in another, so
+neither compiler notices when they drift and the reader lands on "page not
+found".
+
+`npm run check:links` reads every link out of the API source and checks it
+against the route table in `src/App.tsx`. Run it after adding a notification or
+changing a route.
 
 ## Keeping in step with the API
 

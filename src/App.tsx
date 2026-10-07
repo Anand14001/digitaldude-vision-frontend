@@ -161,6 +161,16 @@ export default function App() {
             </RequirePermission>
           }
         />
+        {/* Static segments outrank the :id route, so /tasks/my is not read
+            as a task called "my". */}
+        <Route
+          path="tasks/my"
+          element={
+            <RequirePermission permissions={['tasks.view.assigned', 'tasks.view.all']}>
+              <TasksPage />
+            </RequirePermission>
+          }
+        />
         <Route path="tasks/:id" element={<TaskDetailPage />} />
 
         <Route
@@ -243,6 +253,24 @@ export default function App() {
           }
         />
         <Route
+          path="timesheets/my"
+          element={
+            <RequirePermission permissions={['timesheets.log.own']}>
+              <TimesheetsPage />
+            </RequirePermission>
+          }
+        />
+        <Route
+          path="timesheets/:id"
+          element={
+            <RequirePermission
+              permissions={['timesheets.view.all', 'timesheets.view.team', 'timesheets.approve']}
+            >
+              <TimesheetsPage />
+            </RequirePermission>
+          }
+        />
+        <Route
           path="attendance"
           element={
             <RequirePermission
@@ -263,7 +291,47 @@ export default function App() {
           }
         />
         <Route
+          path="leave/my"
+          element={
+            <RequirePermission permissions={['leave.request.own']}>
+              <LeavePage />
+            </RequirePermission>
+          }
+        />
+        <Route
+          path="leave/requests/:id"
+          element={
+            <RequirePermission
+              permissions={['leave.view.all', 'leave.view.team', 'leave.approve']}
+            >
+              <LeavePage />
+            </RequirePermission>
+          }
+        />
+        <Route
           path="performance"
+          element={
+            <RequirePermission
+              permissions={[
+                'performance.view.own',
+                'performance.view.team',
+                'performance.view.all',
+              ]}
+            >
+              <PerformancePage />
+            </RequirePermission>
+          }
+        />
+        <Route
+          path="performance/my"
+          element={
+            <RequirePermission permissions={['performance.view.own']}>
+              <PerformancePage />
+            </RequirePermission>
+          }
+        />
+        <Route
+          path="performance/reviews/:id"
           element={
             <RequirePermission
               permissions={[

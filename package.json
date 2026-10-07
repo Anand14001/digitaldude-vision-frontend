@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "typecheck": "tsc -b --noEmit",
     "lint": "eslint \"src/**/*.{ts,tsx}\"",
-    "sync:contract": "node scripts/sync-contract.mjs"
+    "sync:contract": "node scripts/sync-contract.mjs",
+    "check:links": "node scripts/check-deep-links.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",

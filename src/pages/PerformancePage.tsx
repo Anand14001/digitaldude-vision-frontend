@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useLocation, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Plus, Star, Target } from 'lucide-react';
 import { toast } from 'sonner';
@@ -27,8 +28,27 @@ import {
 import { GoalStatusBadge, ReviewStatusBadge } from '@/components/domain';
 
 export function PerformancePage() {
-  const { can } = useAuth();
-  const [tab, setTab] = useState('mine');
+  const { can, user } = useAuth();
+  const { pathname } = useLocation();
+  const { id: linkedReviewId } = useParams();
+  const [tab, setTab] = useState(pathname.endsWith('/my') ? 'mine' : 'mine');
+  const [openReview, setOpenReview] = useState<PerformanceReview | null>(null);
+
+  // A notification can link straight at one review. Which side of it the reader
+  // is on decides whether they are writing the self-assessment or the manager's,
+  // so the review itself is fetched and the right form opened.
+  const linkedReview = useQuery({
+    queryKey: ['performance', 'review', linkedReviewId],
+    queryFn: () => apiGet<PerformanceReview>(`/performance/reviews/${linkedReviewId}`),
+    enabled: Boolean(linkedReviewId),
+  });
+
+  useEffect(() => {
+    if (!linkedReview.data || openReview) return;
+    const isSubject = linkedReview.data.employeeId === user?.employee?.id;
+    setTab(isSubject ? 'mine' : 'team');
+    setOpenReview(linkedReview.data);
+  }, [linkedReview.data, openReview, user?.employee?.id]);
   const [creatingCycle, setCreatingCycle] = useState(false);
   const [creatingGoal, setCreatingGoal] = useState(false);
 
@@ -79,6 +99,13 @@ export function PerformancePage() {
         </TabPanel>
       </Tabs>
 
+      {openReview && (
+        <ReviewModal
+          review={openReview}
+          mode={openReview.employeeId === user?.employee?.id ? 'self' : 'manager'}
+          onClose={() => setOpenReview(null)}
+        />
+      )}
       {creatingCycle && <CreateCycleModal onClose={() => setCreatingCycle(false)} />}
       {creatingGoal && <CreateGoalModal onClose={() => setCreatingGoal(false)} />}
     </div>
