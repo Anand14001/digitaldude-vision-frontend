@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { FolderKanban, LayoutGrid, List, Plus } from 'lucide-react';
+import { Briefcase, Building2, FolderKanban, LayoutGrid, List, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { apiGet, apiPost, errorMessage } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
@@ -50,6 +50,7 @@ export function ProjectsPage() {
 
   const list = useListState(
     {
+      kind: undefined,
       status: undefined,
       priority: undefined,
       health: undefined,
@@ -104,6 +105,15 @@ export function ProjectsPage() {
             activeCount={list.activeFilterCount}
             onReset={list.resetFilters}
           >
+            <FilterSelect
+              value={list.filters.kind}
+              onChange={(value) => list.setFilter('kind', value)}
+              options={[
+                { value: 'CLIENT', label: 'Client work' },
+                { value: 'INTERNAL', label: 'Internal' },
+              ]}
+              allLabel="Client and internal"
+            />
             <FilterSelect
               value={list.filters.status}
               onChange={(value) => list.setFilter('status', value)}
@@ -188,7 +198,13 @@ export function ProjectsPage() {
                             </div>
                           </div>
                         </TD>
-                        <TD className="text-muted">{project.client.name}</TD>
+                        <TD>
+                          {project.client ? (
+                            <span className="text-muted">{project.client.name}</span>
+                          ) : (
+                            <Badge tone="neutral">Internal</Badge>
+                          )}
+                        </TD>
                         <TD>
                           {project.currentStage ? (
                             <span
@@ -327,7 +343,9 @@ function ProjectBoardView() {
                         </p>
                         <PriorityBadge value={project.priority} compact />
                       </div>
-                      <p className="mt-0.5 truncate text-xs text-muted">{project.client.name}</p>
+                      <p className="mt-0.5 truncate text-xs text-muted">
+                        {project.client?.name ?? 'Internal'}
+                      </p>
                       <div className="mt-2.5 flex items-center justify-between gap-2">
                         <AvatarGroup
                           people={project.members.map((member) => ({
@@ -363,6 +381,7 @@ function CreateProjectModal({ onClose }: { onClose: () => void }) {
 
   const [form, setForm] = useState({
     name: '',
+    kind: 'CLIENT' as 'CLIENT' | 'INTERNAL',
     clientId: '',
     projectTypeId: '',
     workflowId: '',
@@ -397,7 +416,8 @@ function CreateProjectModal({ onClose }: { onClose: () => void }) {
     mutationFn: () =>
       apiPost<{ id: string }>('/projects', {
         name: form.name,
-        clientId: form.clientId,
+        kind: form.kind,
+        clientId: form.kind === 'INTERNAL' ? null : form.clientId,
         projectTypeId: form.projectTypeId || null,
         workflowId: form.workflowId,
         managerId: form.managerId || null,
@@ -431,7 +451,10 @@ function CreateProjectModal({ onClose }: { onClose: () => void }) {
 
   const typeOptions = projectTypes.data ?? [];
 
-  const ready = form.name.length >= 2 && form.clientId && form.workflowId;
+  const ready =
+    form.name.length >= 2 &&
+    form.workflowId &&
+    (form.kind === 'INTERNAL' || Boolean(form.clientId));
 
   return (
     <Modal
@@ -456,26 +479,101 @@ function CreateProjectModal({ onClose }: { onClose: () => void }) {
       }
     >
       <div className="space-y-4">
+        {/* Asked first, because it decides whether a client is needed at all. */}
+        <div>
+          <span className="dd-label">What kind of project is this?</span>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {(
+              [
+                {
+                  value: 'CLIENT' as const,
+                  title: 'Client project',
+                  hint: 'Delivered for a client. Appears in their portal.',
+                  icon: <Briefcase className="h-4 w-4" />,
+                },
+                {
+                  value: 'INTERNAL' as const,
+                  title: 'Internal project',
+                  hint: "Our own work — no client, never shown in a portal.",
+                  icon: <Building2 className="h-4 w-4" />,
+                },
+              ]
+            ).map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() =>
+                  setForm({
+                    ...form,
+                    kind: option.value,
+                    // Dropping the client avoids sending a stale one after a switch.
+                    clientId: option.value === 'INTERNAL' ? '' : form.clientId,
+                  })
+                }
+                className={cn(
+                  'flex items-start gap-2.5 rounded-xl border p-3 text-left transition-colors',
+                  form.kind === option.value
+                    ? 'border-primary bg-primary-soft'
+                    : 'border-border hover:border-border-strong',
+                )}
+              >
+                <span
+                  className={cn(
+                    'mt-0.5',
+                    form.kind === option.value ? 'text-primary' : 'text-muted',
+                  )}
+                >
+                  {option.icon}
+                </span>
+                <span className="min-w-0">
+                  <span
+                    className={cn(
+                      'block text-sm font-medium',
+                      form.kind === option.value ? 'text-primary' : 'text-fg',
+                    )}
+                  >
+                    {option.title}
+                  </span>
+                  <span className="block text-2xs text-muted">{option.hint}</span>
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+
         <Input
           label="Project name"
           required
           value={form.name}
           onChange={(event) => setForm({ ...form, name: event.target.value })}
-          placeholder="e.g. LetsPropStore website revamp"
+          placeholder={
+            form.kind === 'INTERNAL'
+              ? 'e.g. Digital Dude website refresh'
+              : 'e.g. LetsPropStore website revamp'
+          }
         />
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <Select
-            label="Client"
-            required
-            value={form.clientId}
-            onChange={(event) => setForm({ ...form, clientId: event.target.value })}
-            placeholder="Select a client"
-            options={(clients.data ?? []).map((client) => ({
-              value: client.id,
-              label: client.name,
-            }))}
-          />
+          {form.kind === 'CLIENT' ? (
+            <Select
+              label="Client"
+              required
+              value={form.clientId}
+              onChange={(event) => setForm({ ...form, clientId: event.target.value })}
+              placeholder="Select a client"
+              options={(clients.data ?? []).map((client) => ({
+                value: client.id,
+                label: client.name,
+              }))}
+            />
+          ) : (
+            <div>
+              <span className="dd-label">Client</span>
+              <div className="flex h-9 items-center rounded-lg border border-dashed border-border px-3 text-sm text-muted">
+                Not applicable for internal work
+              </div>
+            </div>
+          )}
           <Select
             label="Project type"
             value={form.projectTypeId}

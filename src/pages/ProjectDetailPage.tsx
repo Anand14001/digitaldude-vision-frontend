@@ -92,9 +92,13 @@ export function ProjectDetailPage() {
           <span className="flex flex-wrap items-center gap-x-2">
             <span className="font-mono text-xs">{project.code}</span>
             <span>·</span>
-            <Link to={`/clients/${project.client.id}`} className="text-primary hover:underline">
-              {project.client.name}
-            </Link>
+            {project.client ? (
+              <Link to={`/clients/${project.client.id}`} className="text-primary hover:underline">
+                {project.client.name}
+              </Link>
+            ) : (
+              <span>Internal project</span>
+            )}
             {project.serviceLine && (
               <>
                 <span>·</span>
@@ -108,7 +112,10 @@ export function ProjectDetailPage() {
             <ProjectStatusBadge value={project.status} />
             <HealthBadge value={project.health} />
             <PriorityBadge value={project.priority} />
-            {project.visibleToClient && <Badge tone="info">Visible to client</Badge>}
+            {project.kind === 'INTERNAL' && <Badge tone="neutral">Internal</Badge>}
+            {project.kind === 'CLIENT' && project.visibleToClient && (
+              <Badge tone="info">Visible to client</Badge>
+            )}
           </>
         }
         actions={
@@ -232,7 +239,9 @@ export function ProjectDetailPage() {
               <CardHeader title="Details" />
               <div className="px-5 py-4">
                 <FieldGrid>
-                  <Field label="Client">{project.client.name}</Field>
+                  <Field label="Client">
+                    {project.client ? project.client.name : 'Internal — no client'}
+                  </Field>
                   <Field label="Project type">{project.projectType?.name}</Field>
                   <Field label="Service line">{project.serviceLine?.name}</Field>
                   <Field label="Workflow">

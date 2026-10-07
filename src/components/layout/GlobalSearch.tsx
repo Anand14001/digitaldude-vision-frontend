@@ -87,7 +87,7 @@ export function GlobalSearch({ open, onClose }: { open: boolean; onClose: () => 
         group: 'Projects',
         icon: FolderKanban,
         title: `${project.code} ${project.name}`,
-        subtitle: project.client.name,
+        subtitle: project.client?.name ?? 'Internal project',
         to: `/projects/${project.id}`,
       }),
     );

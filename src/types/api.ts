@@ -12,6 +12,7 @@ export type {
   UserKind,
   UserStatus,
   ThemePreference,
+  ProjectKind,
   ProjectStatus,
   Priority,
   HealthStatus,
@@ -53,6 +54,7 @@ import type {
   NotificationType,
   PermissionKey,
   Priority,
+  ProjectKind,
   ProjectStatus,
   ReviewStatus,
   RetainerStatus,
@@ -268,6 +270,7 @@ export interface ProjectListItem {
   id: string;
   code: string;
   name: string;
+  kind: ProjectKind;
   status: ProjectStatus;
   priority: Priority;
   health: HealthStatus;
@@ -275,7 +278,8 @@ export interface ProjectListItem {
   dueDate: string | null;
   visibleToClient: boolean;
   createdAt: string;
-  client: NamedRef;
+  /// null for an internal project.
+  client: NamedRef | null;
   currentStage: StageRef | null;
   serviceLine: NamedRef | null;
   manager: { id: string; user: { name: string } } | null;
