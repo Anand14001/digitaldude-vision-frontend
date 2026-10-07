@@ -253,16 +253,7 @@ export function AppLayout() {
           className="flex items-center gap-2.5 overflow-hidden"
           aria-label="Vision"
         >
-          {collapsed ? (
-            <LogoMark />
-          ) : (
-            <>
-              <Logo size="md" />
-              <span className="rounded border border-border px-1.5 py-0.5 text-2xs font-semibold uppercase tracking-wide text-muted">
-                Vision
-              </span>
-            </>
-          )}
+          {collapsed ? <LogoMark /> : <Logo size="md" />}
         </Link>
       </div>
 

@@ -46,7 +46,13 @@ export function CommentThread({
 
   const post = useMutation({
     mutationFn: () =>
-      apiPost('/comments', { entityType, entityId, body, isInternal, mentions }),
+      apiPost('/comments', {
+        entityType,
+        entityId,
+        body,
+        isInternal,
+        mentions: mentions.filter(Boolean),
+      }),
     onSuccess: () => {
       setBody('');
       setMentions([]);
