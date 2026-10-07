@@ -30,7 +30,7 @@ export function TaskBoard({
   stageId?: string | null;
 }) {
   const queryClient = useQueryClient();
-  const { can } = useAuth();
+  const { can, user } = useAuth();
   const [dragging, setDragging] = useState<TaskListItem | null>(null);
   const [overColumn, setOverColumn] = useState<string | null>(null);
   const [composerStatus, setComposerStatus] = useState<string | null>(null);
@@ -48,7 +48,14 @@ export function TaskBoard({
     },
   });
 
-  const canEdit = can('tasks.update', 'tasks.update.assigned');
+  // Decided per card, not once for the board: someone who may only move their
+  // own work should not be able to pick up a colleague's card and be refused by
+  // the server after the fact.
+  const canMoveAny = can('tasks.update');
+  const canMove = (task: TaskListItem) =>
+    canMoveAny ||
+    (can('tasks.update.assigned', 'tasks.status.assigned') &&
+      task.assignee?.id === user?.employee?.id);
 
   if (!board) return null;
 
@@ -108,7 +115,7 @@ export function TaskBoard({
                 column.tasks.map((task) => (
                   <article
                     key={task.id}
-                    draggable={canEdit}
+                    draggable={canMove(task)}
                     onDragStart={() => setDragging(task)}
                     onDragEnd={() => {
                       setDragging(null);
@@ -116,7 +123,7 @@ export function TaskBoard({
                     }}
                     className={cn(
                       'dd-card p-3 transition-all',
-                      canEdit && 'cursor-grab active:cursor-grabbing',
+                      canMove(task) && 'cursor-grab active:cursor-grabbing',
                       dragging?.id === task.id && 'opacity-40',
                     )}
                   >

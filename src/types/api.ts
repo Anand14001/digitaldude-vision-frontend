@@ -389,6 +389,8 @@ export interface TaskDetail extends TaskListItem {
   files: FileObject[];
   timeEntries: TimeEntry[];
   loggedHours: string | number;
+  /** Statuses this task may take, from its own workflow. */
+  statusOptions: TaskStatusRef[];
 }
 
 export interface MyTasks {

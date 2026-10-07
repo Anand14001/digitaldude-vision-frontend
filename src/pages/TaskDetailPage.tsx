@@ -58,26 +58,6 @@ export function TaskDetailPage() {
     enabled: Boolean(id),
   });
 
-  const workflowStatuses = useQuery({
-    queryKey: ['task-statuses', task?.projectId, task?.retainerCycleId],
-    queryFn: async () => {
-      if (task?.projectId) {
-        const project = await apiGet<{ workflow: { taskStatuses: TaskStatusRef[] } }>(
-          `/projects/${task.projectId}`,
-        );
-        return project.workflow.taskStatuses;
-      }
-      if (task?.retainerCycleId) {
-        const cycle = await apiGet<{
-          retainer: { workflow: { taskStatuses: TaskStatusRef[] } };
-        }>(`/retainers/cycles/${task.retainerCycleId}`);
-        return cycle.retainer.workflow.taskStatuses;
-      }
-      return [];
-    },
-    enabled: Boolean(task),
-  });
-
   const employees = useQuery({
     queryKey: ['options', 'employees'],
     queryFn: () => apiGet<EmployeeListItem[]>('/employees/options/all'),
@@ -128,9 +108,13 @@ export function TaskDetailPage() {
   if (error) return <ErrorState message={errorMessage(error)} onRetry={() => void refetch()} />;
   if (!task) return null;
 
-  const canEdit =
-    can('tasks.update') || (can('tasks.update.assigned') && task.assigneeId === user?.employee?.id);
-  const statuses = workflowStatuses.data ?? [];
+  const isMine = task.assigneeId === user?.employee?.id;
+  // Editing the task and working it are different rights: anyone assigned can
+  // move their own task along and tick its steps off, while changing what the
+  // task is needs tasks.update.
+  const canEdit = can('tasks.update') || (can('tasks.update.assigned') && isMine);
+  const canSetStatus = canEdit || (can('tasks.status.assigned') && isMine);
+  const statuses = task.statusOptions ?? [];
   const doneChecklist = task.checklist.filter((item) => item.completedAt).length;
   const blockers = task.dependsOn.filter((entry) => !entry.blockingTask.completedAt);
 
@@ -263,7 +247,7 @@ export function TaskDetailPage() {
                 <li key={item.id} className="group flex items-center gap-2 px-5 py-2.5">
                   <Checkbox
                     checked={Boolean(item.completedAt)}
-                    disabled={!canEdit}
+                    disabled={!canSetStatus}
                     onChange={(event) =>
                       toggleChecklist.mutate({
                         itemId: item.id,
@@ -383,7 +367,7 @@ export function TaskDetailPage() {
           <Card>
             <CardHeader title="Properties" />
             <div className="space-y-4 px-5 py-4">
-              {canEdit && statuses.length > 0 && (
+              {canSetStatus && statuses.length > 0 && (
                 <Select
                   label="Status"
                   value={task.statusId}
