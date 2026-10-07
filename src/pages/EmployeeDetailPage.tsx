@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Briefcase,
+  Pencil,
   Camera,
   FileText,
   Laptop,
@@ -41,6 +42,7 @@ import {
   TabList,
   TabPanel,
   Tabs,
+  Textarea,
 } from '@/components/ui';
 import {
   EmployeeStatusBadge,
@@ -53,6 +55,7 @@ export function EmployeeDetailPage() {
   const { can, user } = useAuth();
   const queryClient = useQueryClient();
   const [tab, setTab] = useState('overview');
+  const [editing, setEditing] = useState(false);
   const [offboarding, setOffboarding] = useState(false);
   const [addingSkills, setAddingSkills] = useState(false);
   const [addingCompensation, setAddingCompensation] = useState(false);
@@ -127,15 +130,22 @@ export function EmployeeDetailPage() {
           </>
         }
         actions={
-          can('employees.delete') && employee.status !== 'EXITED' && !isSelf ? (
-            <Button
-              variant="secondary"
-              icon={<UserMinus className="h-4 w-4" />}
-              onClick={() => setOffboarding(true)}
-            >
-              Offboard
-            </Button>
-          ) : undefined
+          <>
+            {can('employees.update') && (
+              <Button icon={<Pencil className="h-4 w-4" />} onClick={() => setEditing(true)}>
+                Edit employee
+              </Button>
+            )}
+            {can('employees.delete') && employee.status !== 'EXITED' && !isSelf && (
+              <Button
+                variant="secondary"
+                icon={<UserMinus className="h-4 w-4" />}
+                onClick={() => setOffboarding(true)}
+              >
+                Offboard
+              </Button>
+            )}
+          </>
         }
       />
 
@@ -615,6 +625,7 @@ export function EmployeeDetailPage() {
         )}
       </Tabs>
 
+      {editing && <EditEmployeeModal employee={employee} onClose={() => setEditing(false)} />}
       {offboarding && (
         <OffboardModal employee={employee} onClose={() => setOffboarding(false)} />
       )}
@@ -631,6 +642,323 @@ export function EmployeeDetailPage() {
         <AssignAssetModal employeeId={employee.id} onClose={() => setAssigningAsset(false)} />
       )}
     </div>
+  );
+}
+
+
+/**
+ * Edits the employee's own record. Role changes need user administration, and
+ * the personal details only appear for someone cleared to see them - which is
+ * also the only case where the API would accept them.
+ */
+function EditEmployeeModal({
+  employee,
+  onClose,
+}: {
+  employee: EmployeeDetail;
+  onClose: () => void;
+}) {
+  const queryClient = useQueryClient();
+  const { can } = useAuth();
+  const canSeePii = employee.personalEmail !== undefined || employee.dateOfBirth !== undefined;
+  const canSetRole = can('settings.users.manage');
+
+  const [form, setForm] = useState({
+    name: employee.user.name,
+    phone: employee.user.phone ?? '',
+    roleId: employee.user.role?.id ?? '',
+    departmentId: employee.department?.id ?? '',
+    designationId: employee.designation?.id ?? '',
+    reportingToId: employee.reportingTo?.id ?? '',
+    employmentType: employee.employmentType as string,
+    status: employee.status as string,
+    weeklyCapacityHours: String(employee.weeklyCapacityHours ?? '40'),
+    probationEnd: employee.probationEnd ? employee.probationEnd.slice(0, 10) : '',
+    notes: employee.notes ?? '',
+    dateOfBirth: employee.dateOfBirth ? employee.dateOfBirth.slice(0, 10) : '',
+    personalEmail: employee.personalEmail ?? '',
+    personalPhone: employee.personalPhone ?? '',
+    emergencyContact: employee.emergencyContact ?? '',
+    emergencyPhone: employee.emergencyPhone ?? '',
+    bloodGroup: employee.bloodGroup ?? '',
+    addressLine: employee.addressLine ?? '',
+    city: employee.city ?? '',
+    state: employee.state ?? '',
+    pincode: employee.pincode ?? '',
+  });
+
+  const roles = useQuery({
+    queryKey: ['roles'],
+    queryFn: () => apiGet<{ id: string; name: string }[]>('/roles'),
+    enabled: canSetRole,
+  });
+  const departments = useQuery({
+    queryKey: ['options', 'departments'],
+    queryFn: () => apiGet<MasterRecord[]>('/masters/departments?pageSize=100'),
+  });
+  const designations = useQuery({
+    queryKey: ['options', 'designations'],
+    queryFn: () => apiGet<MasterRecord[]>('/masters/designations?pageSize=100'),
+  });
+  const colleagues = useQuery({
+    queryKey: ['options', 'employees'],
+    queryFn: () => apiGet<EmployeeDetail[]>('/employees/options/all'),
+  });
+
+  const save = useMutation({
+    mutationFn: () => {
+      const payload: Record<string, unknown> = {
+        name: form.name,
+        phone: form.phone || null,
+        departmentId: form.departmentId || null,
+        designationId: form.designationId || null,
+        reportingToId: form.reportingToId || null,
+        employmentType: form.employmentType,
+        status: form.status,
+        weeklyCapacityHours: Number(form.weeklyCapacityHours),
+        probationEnd: form.probationEnd || null,
+        notes: form.notes || null,
+      };
+      // Only send what this person is allowed to change; the API would refuse
+      // the rest anyway, and sending it would turn a no-op into an error.
+      if (canSetRole) payload.roleId = form.roleId || null;
+      if (canSeePii) {
+        Object.assign(payload, {
+          dateOfBirth: form.dateOfBirth || null,
+          personalEmail: form.personalEmail || null,
+          personalPhone: form.personalPhone || null,
+          emergencyContact: form.emergencyContact || null,
+          emergencyPhone: form.emergencyPhone || null,
+          bloodGroup: form.bloodGroup || null,
+          addressLine: form.addressLine || null,
+          city: form.city || null,
+          state: form.state || null,
+          pincode: form.pincode || null,
+        });
+      }
+      return apiPatch(`/employees/${employee.id}`, payload);
+    },
+    onSuccess: () => {
+      toast.success('Employee updated');
+      void queryClient.invalidateQueries({ queryKey: ['employee', employee.id] });
+      void queryClient.invalidateQueries({ queryKey: ['employees'] });
+      onClose();
+    },
+    onError: (caught) => toast.error(errorMessage(caught)),
+  });
+
+  return (
+    <Modal
+      open
+      onClose={onClose}
+      title={`Edit ${employee.user.name}`}
+      size="xl"
+      footer={
+        <>
+          <Button variant="secondary" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button
+            loading={save.isPending}
+            disabled={form.name.trim().length < 2}
+            onClick={() => save.mutate()}
+          >
+            Save changes
+          </Button>
+        </>
+      }
+    >
+      <div className="space-y-5">
+        <section className="space-y-4">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Input
+              label="Full name"
+              required
+              value={form.name}
+              onChange={(event) => setForm({ ...form, name: event.target.value })}
+            />
+            <Input
+              label="Work email"
+              value={employee.user.email}
+              disabled
+              hint="Changing a sign-in address is done from Settings, Users."
+            />
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Input
+              label="Phone"
+              value={form.phone}
+              onChange={(event) => setForm({ ...form, phone: event.target.value })}
+            />
+            {canSetRole ? (
+              <Select
+                label="CRM role"
+                value={form.roleId}
+                onChange={(event) => setForm({ ...form, roleId: event.target.value })}
+                placeholder="No role (no access)"
+                hint="Decides what they can see and do."
+                options={(roles.data ?? []).map((role) => ({ value: role.id, label: role.name }))}
+              />
+            ) : (
+              <Input
+                label="CRM role"
+                value={employee.user.role?.name ?? 'No role'}
+                disabled
+                hint="Needs user administration rights to change."
+              />
+            )}
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-3">
+            <Select
+              label="Department"
+              value={form.departmentId}
+              onChange={(event) => setForm({ ...form, departmentId: event.target.value })}
+              placeholder="None"
+              options={(departments.data ?? []).map((item) => ({
+                value: item.id,
+                label: String(item.name),
+              }))}
+            />
+            <Select
+              label="Designation"
+              value={form.designationId}
+              onChange={(event) => setForm({ ...form, designationId: event.target.value })}
+              placeholder="None"
+              options={(designations.data ?? []).map((item) => ({
+                value: item.id,
+                label: String(item.title),
+              }))}
+            />
+            <Select
+              label="Reports to"
+              value={form.reportingToId}
+              onChange={(event) => setForm({ ...form, reportingToId: event.target.value })}
+              placeholder="Nobody"
+              options={(colleagues.data ?? [])
+                .filter((entry) => entry.id !== employee.id)
+                .map((entry) => ({ value: entry.id, label: entry.user.name }))}
+            />
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-4">
+            <Select
+              label="Employment"
+              value={form.employmentType}
+              onChange={(event) => setForm({ ...form, employmentType: event.target.value })}
+              options={['FULL_TIME', 'PART_TIME', 'CONTRACT', 'INTERN', 'FREELANCE'].map(
+                (value) => ({ value, label: humanise(value) }),
+              )}
+            />
+            <Select
+              label="Status"
+              value={form.status}
+              onChange={(event) => setForm({ ...form, status: event.target.value })}
+              options={['ONBOARDING', 'ACTIVE', 'ON_NOTICE'].map((value) => ({
+                value,
+                label: humanise(value),
+              }))}
+              hint={employee.status === 'EXITED' ? 'Already exited' : undefined}
+            />
+            <Input
+              label="Capacity (h/wk)"
+              type="number"
+              min={0}
+              max={80}
+              value={form.weeklyCapacityHours}
+              onChange={(event) =>
+                setForm({ ...form, weeklyCapacityHours: event.target.value })
+              }
+            />
+            <Input
+              label="Probation ends"
+              type="date"
+              value={form.probationEnd}
+              onChange={(event) => setForm({ ...form, probationEnd: event.target.value })}
+            />
+          </div>
+
+          <Textarea
+            label="Notes"
+            rows={2}
+            value={form.notes}
+            onChange={(event) => setForm({ ...form, notes: event.target.value })}
+          />
+        </section>
+
+        {canSeePii && (
+          <section className="space-y-4 rounded-xl border border-border bg-surface-2/40 p-4">
+            <p className="flex items-center gap-1.5 text-2xs font-medium uppercase tracking-wide text-subtle">
+              <ShieldAlert className="h-3.5 w-3.5" />
+              Personal details &mdash; visible only with the right clearance
+            </p>
+
+            <div className="grid gap-4 sm:grid-cols-3">
+              <Input
+                label="Date of birth"
+                type="date"
+                value={form.dateOfBirth}
+                onChange={(event) => setForm({ ...form, dateOfBirth: event.target.value })}
+              />
+              <Input
+                label="Personal email"
+                type="email"
+                value={form.personalEmail}
+                onChange={(event) => setForm({ ...form, personalEmail: event.target.value })}
+              />
+              <Input
+                label="Personal phone"
+                value={form.personalPhone}
+                onChange={(event) => setForm({ ...form, personalPhone: event.target.value })}
+              />
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-3">
+              <Input
+                label="Emergency contact"
+                value={form.emergencyContact}
+                onChange={(event) => setForm({ ...form, emergencyContact: event.target.value })}
+              />
+              <Input
+                label="Emergency phone"
+                value={form.emergencyPhone}
+                onChange={(event) => setForm({ ...form, emergencyPhone: event.target.value })}
+              />
+              <Input
+                label="Blood group"
+                value={form.bloodGroup}
+                onChange={(event) => setForm({ ...form, bloodGroup: event.target.value })}
+              />
+            </div>
+
+            <Input
+              label="Address"
+              value={form.addressLine}
+              onChange={(event) => setForm({ ...form, addressLine: event.target.value })}
+            />
+
+            <div className="grid gap-4 sm:grid-cols-3">
+              <Input
+                label="City"
+                value={form.city}
+                onChange={(event) => setForm({ ...form, city: event.target.value })}
+              />
+              <Input
+                label="State"
+                value={form.state}
+                onChange={(event) => setForm({ ...form, state: event.target.value })}
+              />
+              <Input
+                label="Pincode"
+                value={form.pincode}
+                onChange={(event) => setForm({ ...form, pincode: event.target.value })}
+              />
+            </div>
+          </section>
+        )}
+      </div>
+    </Modal>
   );
 }
 

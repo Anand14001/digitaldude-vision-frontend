@@ -6,17 +6,24 @@ import {
   ExternalLink,
   Mail,
   Phone,
+  Pencil,
   Plus,
   ShieldCheck,
   ShieldOff,
   Star,
+  Trash2,
   UserPlus,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { apiDelete, apiGet, apiPost, errorMessage } from '@/lib/api';
+import { apiDelete, apiGet, apiPatch, apiPost, errorMessage } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
-import { fmtCurrency, fmtDate, humanise } from '@/lib/utils';
-import type { ClientContact, ClientDetail } from '@/types/api';
+import { cn, fmtCurrency, fmtDate, humanise } from '@/lib/utils';
+import type {
+  ClientContact,
+  ClientDetail,
+  EmployeeListItem,
+  MasterRecord,
+} from '@/types/api';
 import {
   Avatar,
   Badge,
@@ -33,10 +40,12 @@ import {
   LoadingBlock,
   Modal,
   PageHeader,
+  Select,
   Tab,
   TabList,
   TabPanel,
   Tabs,
+  Textarea,
 } from '@/components/ui';
 import {
   ClientStatusBadge,
@@ -51,7 +60,10 @@ export function ClientDetailPage() {
   const { id = '' } = useParams();
   const { can } = useAuth();
   const [tab, setTab] = useState('overview');
+  const [editingClient, setEditingClient] = useState(false);
   const [addingContact, setAddingContact] = useState(false);
+  const [editingContact, setEditingContact] = useState<ClientContact | null>(null);
+  const [removingContact, setRemovingContact] = useState<ClientContact | null>(null);
   const [grantingPortal, setGrantingPortal] = useState<ClientContact | null>(null);
   const [revoking, setRevoking] = useState<ClientContact | null>(null);
 
@@ -108,15 +120,22 @@ export function ClientDetailPage() {
           </>
         }
         actions={
-          can('clients.contacts.manage') ? (
-            <Button
-              icon={<UserPlus className="h-4 w-4" />}
-              variant="secondary"
-              onClick={() => setAddingContact(true)}
-            >
-              Add contact
-            </Button>
-          ) : undefined
+          <>
+            {can('clients.update') && (
+              <Button icon={<Pencil className="h-4 w-4" />} onClick={() => setEditingClient(true)}>
+                Edit client
+              </Button>
+            )}
+            {can('clients.contacts.manage') && (
+              <Button
+                icon={<UserPlus className="h-4 w-4" />}
+                variant="secondary"
+                onClick={() => setAddingContact(true)}
+              >
+                Add contact
+              </Button>
+            )}
+          </>
         }
       />
 
@@ -365,6 +384,25 @@ export function ClientDetailPage() {
                       <Badge tone="neutral">No portal access</Badge>
                     )}
 
+                    {can('clients.contacts.manage') && (
+                      <>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          aria-label={`Edit ${contact.name}`}
+                          icon={<Pencil className="h-3.5 w-3.5" />}
+                          onClick={() => setEditingContact(contact)}
+                        />
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          aria-label={`Remove ${contact.name}`}
+                          icon={<Trash2 className="h-3.5 w-3.5" />}
+                          onClick={() => setRemovingContact(contact)}
+                        />
+                      </>
+                    )}
+
                     {can('clients.portal.manage') &&
                       (contact.portalEnabled ? (
                         <Button
@@ -412,9 +450,24 @@ export function ClientDetailPage() {
         </TabPanel>
       </Tabs>
 
+      {editingClient && (
+        <EditClientModal client={client} onClose={() => setEditingClient(false)} />
+      )}
       {addingContact && (
         <AddContactModal clientId={client.id} onClose={() => setAddingContact(false)} />
       )}
+      {editingContact && (
+        <EditContactModal
+          contact={editingContact}
+          clientId={client.id}
+          onClose={() => setEditingContact(null)}
+        />
+      )}
+      <RemoveContactDialog
+        contact={removingContact}
+        clientId={client.id}
+        onClose={() => setRemovingContact(null)}
+      />
       {grantingPortal && (
         <GrantPortalModal
           contact={grantingPortal}
@@ -428,6 +481,358 @@ export function ClientDetailPage() {
         onClose={() => setRevoking(null)}
       />
     </div>
+  );
+}
+
+
+const CLIENT_STATUSES = ['PROSPECT', 'ACTIVE', 'PAUSED', 'CHURNED'] as const;
+
+/** Edits the account itself: details, who manages it, and what they buy. */
+function EditClientModal({ client, onClose }: { client: ClientDetail; onClose: () => void }) {
+  const queryClient = useQueryClient();
+
+  const [form, setForm] = useState({
+    name: client.name,
+    legalName: client.legalName ?? '',
+    status: client.status as string,
+    industry: client.industry ?? '',
+    email: client.email ?? '',
+    phone: client.phone ?? '',
+    website: client.website ?? '',
+    gstin: client.gstin ?? '',
+    addressLine: client.addressLine ?? '',
+    city: client.city ?? '',
+    state: client.state ?? '',
+    pincode: client.pincode ?? '',
+    accountManagerId: client.accountManager?.id ?? '',
+    notes: client.notes ?? '',
+    serviceLineIds: client.serviceLines.map((entry) => entry.serviceLine.id),
+  });
+
+  const serviceLines = useQuery({
+    queryKey: ['options', 'service-lines'],
+    queryFn: () => apiGet<MasterRecord[]>('/masters/service-lines?pageSize=100'),
+  });
+  const managers = useQuery({
+    queryKey: ['options', 'employees'],
+    queryFn: () => apiGet<EmployeeListItem[]>('/employees/options/all'),
+  });
+
+  const save = useMutation({
+    mutationFn: () =>
+      apiPatch(`/clients/${client.id}`, {
+        name: form.name,
+        legalName: form.legalName || null,
+        status: form.status,
+        industry: form.industry || null,
+        // Empty strings rather than null: the API validates these as optional
+        // URLs and emails, which reject null but accept an empty value.
+        email: form.email,
+        website: form.website,
+        phone: form.phone || null,
+        gstin: form.gstin || null,
+        addressLine: form.addressLine || null,
+        city: form.city || null,
+        state: form.state || null,
+        pincode: form.pincode || null,
+        accountManagerId: form.accountManagerId || null,
+        notes: form.notes || null,
+        serviceLineIds: form.serviceLineIds,
+      }),
+    onSuccess: () => {
+      toast.success('Client updated');
+      void queryClient.invalidateQueries({ queryKey: ['client', client.id] });
+      void queryClient.invalidateQueries({ queryKey: ['clients'] });
+      onClose();
+    },
+    onError: (caught) => toast.error(errorMessage(caught)),
+  });
+
+  return (
+    <Modal
+      open
+      onClose={onClose}
+      title={`Edit ${client.name}`}
+      size="lg"
+      footer={
+        <>
+          <Button variant="secondary" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button
+            loading={save.isPending}
+            disabled={form.name.trim().length < 2}
+            onClick={() => save.mutate()}
+          >
+            Save changes
+          </Button>
+        </>
+      }
+    >
+      <div className="space-y-4">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Input
+            label="Client name"
+            required
+            value={form.name}
+            onChange={(event) => setForm({ ...form, name: event.target.value })}
+          />
+          <Input
+            label="Legal name"
+            value={form.legalName}
+            onChange={(event) => setForm({ ...form, legalName: event.target.value })}
+          />
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-3">
+          <Select
+            label="Status"
+            value={form.status}
+            onChange={(event) => setForm({ ...form, status: event.target.value })}
+            options={CLIENT_STATUSES.map((value) => ({ value, label: humanise(value) }))}
+            hint={form.status === 'CHURNED' ? 'Records the churn date' : undefined}
+          />
+          <Input
+            label="Industry"
+            value={form.industry}
+            onChange={(event) => setForm({ ...form, industry: event.target.value })}
+          />
+          <Select
+            label="Account manager"
+            value={form.accountManagerId}
+            onChange={(event) => setForm({ ...form, accountManagerId: event.target.value })}
+            placeholder="Unassigned"
+            options={(managers.data ?? []).map((employee) => ({
+              value: employee.id,
+              label: employee.user.name,
+            }))}
+          />
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-3">
+          <Input
+            label="Email"
+            type="email"
+            value={form.email}
+            onChange={(event) => setForm({ ...form, email: event.target.value })}
+          />
+          <Input
+            label="Phone"
+            value={form.phone}
+            onChange={(event) => setForm({ ...form, phone: event.target.value })}
+          />
+          <Input
+            label="Website"
+            value={form.website}
+            onChange={(event) => setForm({ ...form, website: event.target.value })}
+            placeholder="https://"
+          />
+        </div>
+
+        <Input
+          label="Address"
+          value={form.addressLine}
+          onChange={(event) => setForm({ ...form, addressLine: event.target.value })}
+        />
+
+        <div className="grid gap-4 sm:grid-cols-4">
+          <Input
+            label="City"
+            value={form.city}
+            onChange={(event) => setForm({ ...form, city: event.target.value })}
+          />
+          <Input
+            label="State"
+            value={form.state}
+            onChange={(event) => setForm({ ...form, state: event.target.value })}
+          />
+          <Input
+            label="Pincode"
+            value={form.pincode}
+            onChange={(event) => setForm({ ...form, pincode: event.target.value })}
+          />
+          <Input
+            label="GSTIN"
+            value={form.gstin}
+            onChange={(event) => setForm({ ...form, gstin: event.target.value })}
+          />
+        </div>
+
+        <div>
+          <span className="dd-label">Services they buy</span>
+          <div className="flex flex-wrap gap-1.5">
+            {(serviceLines.data ?? []).map((line) => {
+              const selected = form.serviceLineIds.includes(line.id);
+              return (
+                <button
+                  key={line.id}
+                  type="button"
+                  onClick={() =>
+                    setForm({
+                      ...form,
+                      serviceLineIds: selected
+                        ? form.serviceLineIds.filter((id) => id !== line.id)
+                        : [...form.serviceLineIds, line.id],
+                    })
+                  }
+                  className={cn(
+                    'rounded-full border px-2.5 py-1 text-xs font-medium transition-colors',
+                    selected
+                      ? 'border-primary bg-primary-soft text-primary'
+                      : 'border-border text-muted hover:border-border-strong',
+                  )}
+                >
+                  {String(line.name)}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <Textarea
+          label="Notes"
+          rows={3}
+          value={form.notes}
+          onChange={(event) => setForm({ ...form, notes: event.target.value })}
+        />
+      </div>
+    </Modal>
+  );
+}
+
+/** Edits one contact at the client. Portal access is managed separately. */
+function EditContactModal({
+  contact,
+  clientId,
+  onClose,
+}: {
+  contact: ClientContact;
+  clientId: string;
+  onClose: () => void;
+}) {
+  const queryClient = useQueryClient();
+  const [form, setForm] = useState({
+    name: contact.name,
+    email: contact.email,
+    phone: contact.phone ?? '',
+    designation: contact.designation ?? '',
+    isPrimary: contact.isPrimary,
+  });
+
+  const save = useMutation({
+    mutationFn: () =>
+      apiPatch(`/clients/contacts/${contact.id}`, {
+        name: form.name,
+        email: form.email,
+        phone: form.phone || null,
+        designation: form.designation || null,
+        isPrimary: form.isPrimary,
+      }),
+    onSuccess: () => {
+      toast.success('Contact updated');
+      void queryClient.invalidateQueries({ queryKey: ['client', clientId] });
+      onClose();
+    },
+    onError: (caught) => toast.error(errorMessage(caught)),
+  });
+
+  return (
+    <Modal
+      open
+      onClose={onClose}
+      title={`Edit ${contact.name}`}
+      footer={
+        <>
+          <Button variant="secondary" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button
+            loading={save.isPending}
+            disabled={form.name.trim().length < 2 || !form.email.includes('@')}
+            onClick={() => save.mutate()}
+          >
+            Save changes
+          </Button>
+        </>
+      }
+    >
+      <div className="space-y-4">
+        <Input
+          label="Name"
+          required
+          value={form.name}
+          onChange={(event) => setForm({ ...form, name: event.target.value })}
+        />
+        <Input
+          label="Email"
+          type="email"
+          required
+          value={form.email}
+          onChange={(event) => setForm({ ...form, email: event.target.value })}
+          hint={
+            contact.portalEnabled
+              ? 'This is also their portal sign-in address.'
+              : undefined
+          }
+        />
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Input
+            label="Phone"
+            value={form.phone}
+            onChange={(event) => setForm({ ...form, phone: event.target.value })}
+          />
+          <Input
+            label="Designation"
+            value={form.designation}
+            onChange={(event) => setForm({ ...form, designation: event.target.value })}
+          />
+        </div>
+        <Checkbox
+          checked={form.isPrimary}
+          onChange={(event) => setForm({ ...form, isPrimary: event.target.checked })}
+          label="Primary contact"
+          description="Replaces whoever is currently primary."
+        />
+      </div>
+    </Modal>
+  );
+}
+
+function RemoveContactDialog({
+  contact,
+  clientId,
+  onClose,
+}: {
+  contact: ClientContact | null;
+  clientId: string;
+  onClose: () => void;
+}) {
+  const queryClient = useQueryClient();
+
+  const remove = useMutation({
+    mutationFn: () => apiDelete(`/clients/contacts/${contact?.id}`),
+    onSuccess: () => {
+      toast.success('Contact removed');
+      void queryClient.invalidateQueries({ queryKey: ['client', clientId] });
+      onClose();
+    },
+    onError: (caught) => toast.error(errorMessage(caught)),
+  });
+
+  return (
+    <ConfirmDialog
+      open={Boolean(contact)}
+      onClose={onClose}
+      onConfirm={() => remove.mutate()}
+      title="Remove this contact?"
+      message={
+        contact?.portalEnabled
+          ? `${contact.name} will be removed and their portal access ends immediately.`
+          : `${contact?.name} will be removed from this client.`
+      }
+      confirmLabel="Remove contact"
+      loading={remove.isPending}
+    />
   );
 }
 
