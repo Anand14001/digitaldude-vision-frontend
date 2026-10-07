@@ -283,13 +283,27 @@ export interface ProjectListItem {
   currentStage: StageRef | null;
   serviceLine: NamedRef | null;
   manager: { id: string; user: { name: string } } | null;
-  members: {
-    id?: string;
-    role?: string;
-    allocationHours?: string | null;
-    employee: EmployeeRef;
-  }[];
+  members: ProjectMember[];
   _count: { tasks: number; deliverables: number; files?: number };
+}
+
+/** What someone does on a project. Descriptive only - access comes from their CRM role. */
+export interface ProjectRoleOption {
+  id: string;
+  name: string;
+  description: string | null;
+  color: string;
+  sortOrder: number;
+  active: boolean;
+  _count?: { members: number };
+}
+
+export interface ProjectMember {
+  id?: string;
+  isLead?: boolean;
+  allocationHours?: string | null;
+  roles?: { role: { id: string; name: string; color: string } }[];
+  employee: EmployeeRef;
 }
 
 export interface ProjectDetail extends ProjectListItem {
@@ -562,7 +576,8 @@ export interface EmployeeDetail extends EmployeeListItem {
   }[];
   projectMemberships: {
     id: string;
-    role: string;
+    isLead?: boolean;
+    roles?: { role: { id: string; name: string; color: string } }[];
     allocationHours: string | null;
     project: {
       id: string;

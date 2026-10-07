@@ -26,6 +26,7 @@ import {
   Card,
   CardHeader,
   Checkbox,
+  ColourBadge,
   EmptyState,
   ErrorState,
   Field,
@@ -337,9 +338,14 @@ export function EmployeeDetailPage() {
                           {membership.project.code}
                         </p>
                       </div>
-                      <Badge tone={membership.role === 'LEAD' ? 'primary' : 'neutral'}>
-                        {humanise(membership.role)}
-                      </Badge>
+                      <span className="flex flex-wrap items-center justify-end gap-1">
+                        {membership.isLead && <Badge tone="primary">Lead</Badge>}
+                        {membership.roles?.map((entry) => (
+                          <ColourBadge key={entry.role.id} color={entry.role.color}>
+                            {entry.role.name}
+                          </ColourBadge>
+                        ))}
+                      </span>
                       {membership.allocationHours && (
                         <span className="shrink-0 text-xs text-muted">
                           {membership.allocationHours}h/wk

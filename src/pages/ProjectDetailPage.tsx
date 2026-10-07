@@ -10,9 +10,10 @@ import {
 import { toast } from 'sonner';
 import { apiGet, apiPatch, apiPost, apiPut, errorMessage } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
-import { cn, fmtCurrency, fmtDate, fmtHours, humanise, isOverdue } from '@/lib/utils';
+import { cn, fmtCurrency, fmtDate, fmtHours, isOverdue } from '@/lib/utils';
 import type {
   EmployeeListItem,
+  ProjectRoleOption,
   ProjectDetail,
   TaskBoard as TaskBoardType,
 } from '@/types/api';
@@ -23,6 +24,7 @@ import {
   Card,
   CardHeader,
   Checkbox,
+  ColourBadge,
   EmptyState,
   ErrorState,
   Field,
@@ -403,9 +405,17 @@ export function ProjectDetailPage() {
                         {member.employee.designation?.title ?? member.employee.employeeCode}
                       </span>
                     </Link>
-                    <Badge tone={member.role === 'LEAD' ? 'primary' : 'neutral'}>
-                      {humanise(member.role)}
-                    </Badge>
+                    <div className="flex flex-wrap items-center justify-end gap-1">
+                      {member.isLead && <Badge tone="primary">Project lead</Badge>}
+                      {member.roles?.map((entry) => (
+                        <ColourBadge key={entry.role.id} color={entry.role.color}>
+                          {entry.role.name}
+                        </ColourBadge>
+                      ))}
+                      {!member.isLead && !member.roles?.length && (
+                        <span className="text-2xs text-subtle">No role set</span>
+                      )}
+                    </div>
                     {member.allocationHours && (
                       <span className="w-16 shrink-0 text-right text-xs text-muted">
                         {member.allocationHours}h/wk
@@ -578,15 +588,24 @@ function EditTeamModal({
   onClose: () => void;
 }) {
   const queryClient = useQueryClient();
+
   const employees = useQuery({
     queryKey: ['options', 'employees'],
     queryFn: () => apiGet<EmployeeListItem[]>('/employees/options/all'),
   });
 
+  // The roles the agency has defined. Descriptive labels, not permissions.
+  const projectRoles = useQuery({
+    queryKey: ['options', 'project-roles'],
+    queryFn: () => apiGet<ProjectRoleOption[]>('/masters/project-roles?pageSize=100'),
+    staleTime: 300_000,
+  });
+
   const [members, setMembers] = useState(
     project.members.map((member) => ({
       employeeId: member.employee.id,
-      role: member.role as string,
+      isLead: member.isLead ?? false,
+      roleIds: member.roles?.map((entry) => entry.role.id) ?? [],
       allocationHours: member.allocationHours ?? '',
     })),
   );
@@ -596,8 +615,10 @@ function EditTeamModal({
       apiPut(`/projects/${project.id}/members`, {
         members: members.map((member) => ({
           employeeId: member.employeeId,
-          role: member.role,
-          allocationHours: member.allocationHours === '' ? null : Number(member.allocationHours),
+          isLead: member.isLead,
+          roleIds: member.roleIds,
+          allocationHours:
+            member.allocationHours === '' ? null : Number(member.allocationHours),
         })),
       }),
     onSuccess: () => {
@@ -608,20 +629,46 @@ function EditTeamModal({
     onError: (caught) => toast.error(errorMessage(caught)),
   });
 
-  const toggle = (employeeId: string) => {
+  const toggleMember = (employeeId: string) => {
     setMembers((current) =>
       current.some((member) => member.employeeId === employeeId)
         ? current.filter((member) => member.employeeId !== employeeId)
-        : [...current, { employeeId, role: 'MEMBER', allocationHours: '' }],
+        : [...current, { employeeId, isLead: false, roleIds: [], allocationHours: '' }],
     );
   };
+
+  /** Only one lead per project, so setting it clears everyone else. */
+  const setLead = (employeeId: string) =>
+    setMembers((current) =>
+      current.map((member) => ({
+        ...member,
+        isLead: member.employeeId === employeeId ? !member.isLead : false,
+      })),
+    );
+
+  const toggleRole = (employeeId: string, roleId: string) =>
+    setMembers((current) =>
+      current.map((member) =>
+        member.employeeId === employeeId
+          ? {
+              ...member,
+              roleIds: member.roleIds.includes(roleId)
+                ? member.roleIds.filter((id) => id !== roleId)
+                : [...member.roleIds, roleId],
+            }
+          : member,
+      ),
+    );
+
+  const activeRoles = (projectRoles.data ?? []).filter((role) => role.active);
 
   return (
     <Modal
       open
       onClose={onClose}
       title="Project team"
-      size="lg"
+      description="Roles describe what someone does here. What they can do still comes from their CRM role."
+      size="xl"
       footer={
         <>
           <Button variant="secondary" onClick={onClose}>
@@ -634,69 +681,102 @@ function EditTeamModal({
       }
     >
       <p className="mb-3 text-xs text-muted">
-        Removing someone with open tasks is refused — reassign their work first.
+        Removing someone with open tasks is refused &mdash; reassign their work first.
+        {activeRoles.length === 0 &&
+          ' No project roles are defined yet; add them under Settings, Master data.'}
       </p>
-      <div className="max-h-[22rem] space-y-1 overflow-y-auto">
+
+      <div className="max-h-[26rem] space-y-2 overflow-y-auto">
         {(employees.data ?? []).map((employee) => {
           const member = members.find((entry) => entry.employeeId === employee.id);
           return (
             <div
               key={employee.id}
               className={cn(
-                'flex items-center gap-3 rounded-lg border p-2.5 transition-colors',
-                member ? 'border-primary/40 bg-primary-soft/40' : 'border-border',
+                'rounded-xl border p-3 transition-colors',
+                member ? 'border-primary/40 bg-primary-soft/30' : 'border-border',
               )}
             >
-              <input
-                type="checkbox"
-                className="h-4 w-4 rounded border-border-strong accent-primary"
-                checked={Boolean(member)}
-                onChange={() => toggle(employee.id)}
-              />
-              <Avatar name={employee.user.name} src={employee.user.avatar?.url} size="sm" />
-              <span className="min-w-0 flex-1">
-                <span className="block truncate text-sm text-fg">{employee.user.name}</span>
-                <span className="block truncate text-xs text-muted">
-                  {employee.designation?.title}
+              <div className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 rounded border-border-strong accent-primary"
+                  checked={Boolean(member)}
+                  onChange={() => toggleMember(employee.id)}
+                  aria-label={`Include ${employee.user.name}`}
+                />
+                <Avatar name={employee.user.name} src={employee.user.avatar?.url} size="sm" />
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-sm font-medium text-fg">
+                    {employee.user.name}
+                  </span>
+                  <span className="block truncate text-xs text-muted">
+                    {employee.designation?.title}
+                  </span>
                 </span>
-              </span>
-              {member && (
-                <>
-                  <Select
-                    value={member.role}
-                    onChange={(event) =>
-                      setMembers((current) =>
-                        current.map((entry) =>
-                          entry.employeeId === employee.id
-                            ? { ...entry, role: event.target.value }
-                            : entry,
-                        ),
-                      )
-                    }
-                    className="w-32"
-                    options={['LEAD', 'MEMBER', 'REVIEWER', 'OBSERVER'].map((role) => ({
-                      value: role,
-                      label: humanise(role),
-                    }))}
-                  />
-                  <Input
-                    type="number"
-                    min={0}
-                    max={80}
-                    placeholder="h/wk"
-                    value={String(member.allocationHours)}
-                    onChange={(event) =>
-                      setMembers((current) =>
-                        current.map((entry) =>
-                          entry.employeeId === employee.id
-                            ? { ...entry, allocationHours: event.target.value }
-                            : entry,
-                        ),
-                      )
-                    }
-                    className="w-20"
-                  />
-                </>
+
+                {member && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setLead(employee.id)}
+                      title="Only one person can lead a project"
+                      className={cn(
+                        'shrink-0 rounded-lg border px-2.5 py-1 text-2xs font-medium transition-colors',
+                        member.isLead
+                          ? 'border-primary bg-primary text-primary-fg'
+                          : 'border-border text-muted hover:border-border-strong',
+                      )}
+                    >
+                      {member.isLead ? 'Project lead' : 'Make lead'}
+                    </button>
+                    <Input
+                      type="number"
+                      min={0}
+                      max={80}
+                      placeholder="h/wk"
+                      aria-label="Planned hours per week"
+                      value={String(member.allocationHours)}
+                      onChange={(event) =>
+                        setMembers((current) =>
+                          current.map((entry) =>
+                            entry.employeeId === employee.id
+                              ? { ...entry, allocationHours: event.target.value }
+                              : entry,
+                          ),
+                        )
+                      }
+                      className="w-20"
+                    />
+                  </>
+                )}
+              </div>
+
+              {member && activeRoles.length > 0 && (
+                <div className="mt-2.5 flex flex-wrap gap-1.5 border-t border-border/60 pt-2.5">
+                  {activeRoles.map((role) => {
+                    const on = member.roleIds.includes(role.id);
+                    return (
+                      <button
+                        key={role.id}
+                        type="button"
+                        onClick={() => toggleRole(employee.id, role.id)}
+                        title={role.description ?? undefined}
+                        className={cn(
+                          'rounded-full border px-2.5 py-1 text-2xs font-medium transition-colors',
+                          on
+                            ? 'text-white'
+                            : 'border-border text-muted hover:border-border-strong',
+                        )}
+                        style={
+                          on ? { backgroundColor: role.color, borderColor: role.color } : undefined
+                        }
+                      >
+                        {role.name}
+                      </button>
+                    );
+                  })}
+                </div>
               )}
             </div>
           );

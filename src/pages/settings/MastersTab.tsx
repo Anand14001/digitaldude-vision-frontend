@@ -113,6 +113,20 @@ const SPECS: MasterSpec[] = [
     ],
   },
   {
+    key: 'project-roles',
+    label: 'Project roles',
+    endpoint: '/masters/project-roles',
+    nameField: 'name',
+    description:
+      'What someone does on a project - Video Editor, QA, Copywriter. Descriptive only: access always comes from the person CRM role.',
+    fields: [
+      { key: 'name', label: 'Role', kind: 'text', required: true },
+      { key: 'description', label: 'Description', kind: 'text', formOnly: true },
+      { key: 'sortOrder', label: 'Order', kind: 'number' },
+      { key: 'active', label: 'Active', kind: 'boolean' },
+    ],
+  },
+  {
     key: 'leave-types',
     label: 'Leave types',
     endpoint: '/masters/leave-types',

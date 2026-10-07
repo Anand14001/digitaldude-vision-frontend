@@ -1,7 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { Mail, Phone, Star } from 'lucide-react';
 import { apiGet, errorMessage } from '@/lib/api';
-import { humanise } from '@/lib/utils';
 import type { ClientContact } from '@/types/api';
 import {
   Avatar,
@@ -19,7 +18,8 @@ interface PortalTeam {
     name: string;
     avatarUrl: string | null;
     designation: string | null;
-    role: string;
+    isLead: boolean;
+    roles: string[];
   }[];
 }
 
@@ -58,9 +58,14 @@ export function PortalTeamPage() {
                       {person.designation ?? 'Digital Dude'}
                     </p>
                   </div>
-                  <Badge tone={person.role === 'LEAD' ? 'primary' : 'neutral'}>
-                    {humanise(person.role)}
-                  </Badge>
+                  <span className="flex flex-wrap items-center justify-end gap-1">
+                    {person.isLead && <Badge tone="primary">Lead</Badge>}
+                    {person.roles.map((role) => (
+                      <Badge key={role} tone="neutral">
+                        {role}
+                      </Badge>
+                    ))}
+                  </span>
                 </li>
               ))}
             </ul>
