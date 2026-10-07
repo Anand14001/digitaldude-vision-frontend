@@ -30,6 +30,7 @@ default). Sign in with the seeded administrator.
 | `npm run typecheck` | Types only |
 | `npm run sync:contract` | Copy the API's generated contract into `src/types/` |
 | `npm run check:links` | Check every deep link the API sends resolves to a route |
+| `npm run strip:maps` | Delete the source maps from `dist/` after a build |
 
 ## Layout
 
@@ -101,14 +102,29 @@ A static bundle. Vercel, Netlify, Cloudflare Pages or any static host works.
 
 - Set `VITE_API_URL` at build time; Vite inlines it, so changing it needs a
   rebuild.
-- The host must serve `index.html` for unknown paths, or a refresh on
-  `/projects/abc` will 404.
+- [`vercel.json`](vercel.json) carries the deploy configuration: the SPA
+  fallback, cache headers, and a build command that strips source maps.
+  On a host other than Vercel, reproduce the fallback yourself — every unknown
+  path must serve `index.html`, or a refresh on `/projects/abc` will 404.
 - The API's `WEB_ORIGINS` must list this app's exact origin, and
   `COOKIE_DOMAIN` must be the shared parent domain if the two are on different
   subdomains — otherwise sign-in appears to work and then immediately drops.
 
 Routes are code-split, so the first load carries the shell rather than Settings,
 Reports and the portal.
+
+### Hosts other than Vercel
+
+`vercel.json` is Vercel-specific. The equivalent elsewhere:
+
+- **Netlify** — `public/_redirects` containing `/* /index.html 200`
+- **Cloudflare Pages** — a `_redirects` file with the same line, or SPA mode
+- **nginx** — `try_files $uri $uri/ /index.html;`
+- **S3 + CloudFront** — map both 403 and 404 to `/index.html` with a 200
+
+Whichever you use, `dist/` must not expose `.map` files. `npm run strip:maps`
+handles that for Vercel through the build command; replicate it in any other
+pipeline.
 
 ## Deep links from notifications
 

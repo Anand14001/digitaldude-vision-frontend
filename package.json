@@ -11,7 +11,8 @@
     "typecheck": "tsc -b --noEmit",
     "lint": "eslint \"src/**/*.{ts,tsx}\"",
     "sync:contract": "node scripts/sync-contract.mjs",
-    "check:links": "node scripts/check-deep-links.mjs"
+    "check:links": "node scripts/check-deep-links.mjs",
+    "strip:maps": "node scripts/strip-maps.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",
@@ -40,5 +41,8 @@
     "tailwindcss": "^3.4.17",
     "typescript": "^5.7.2",
     "vite": "^6.0.3"
+  },
+  "engines": {
+    "node": ">=20"
   }
 }
