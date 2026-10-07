@@ -190,7 +190,7 @@ const THEME_ICONS: Record<ThemeMode, typeof Sun> = {
 
 export function AppLayout() {
   const { user, can, logout } = useAuth();
-  const { mode, setMode } = useTheme();
+  const mode = useTheme((state) => state.mode);
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -445,36 +445,6 @@ export function AppLayout() {
             >
               Change password
             </DropdownItem>
-            <DropdownSeparator />
-            <div className="px-2.5 py-1.5">
-              <p className="mb-1.5 text-2xs font-semibold uppercase tracking-wide text-subtle">
-                Theme
-              </p>
-              <div className="flex gap-1">
-                {(['light', 'dark', 'system'] as ThemeMode[]).map((option) => {
-                  const Icon = THEME_ICONS[option];
-                  return (
-                    <button
-                      key={option}
-                      type="button"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        setMode(option);
-                      }}
-                      className={cn(
-                        'flex flex-1 flex-col items-center gap-1 rounded-lg border px-2 py-1.5 text-2xs capitalize transition-colors',
-                        mode === option
-                          ? 'border-primary bg-primary-soft text-primary'
-                          : 'border-border text-muted hover:bg-surface-2',
-                      )}
-                    >
-                      <Icon className="h-3.5 w-3.5" />
-                      {option}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
             <DropdownSeparator />
             <DropdownItem
               icon={<LogOut className="h-4 w-4" />}
