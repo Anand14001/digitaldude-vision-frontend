@@ -24,6 +24,7 @@ import {
   Search,
   Settings,
   Sun,
+  Workflow,
   Target,
   TrendingUp,
   UserCircle,
@@ -69,6 +70,13 @@ const NAV: NavEntry[] = [
     label: 'Projects',
     icon: FolderKanban,
     permissions: ['projects.view.all', 'projects.view.assigned'],
+    section: 'Work',
+  },
+  {
+    to: '/workflows',
+    label: 'Workflows',
+    icon: Workflow,
+    permissions: ['settings.workflows.manage'],
     section: 'Work',
   },
   {

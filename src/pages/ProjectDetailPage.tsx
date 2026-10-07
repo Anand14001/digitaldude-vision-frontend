@@ -235,7 +235,18 @@ export function ProjectDetailPage() {
                   <Field label="Client">{project.client.name}</Field>
                   <Field label="Project type">{project.projectType?.name}</Field>
                   <Field label="Service line">{project.serviceLine?.name}</Field>
-                  <Field label="Workflow">{project.workflow.name}</Field>
+                  <Field label="Workflow">
+                    {can('settings.workflows.manage') ? (
+                      <Link
+                        to={`/workflows?open=${project.workflow.id}`}
+                        className="text-primary hover:underline"
+                      >
+                        {project.workflow.name}
+                      </Link>
+                    ) : (
+                      project.workflow.name
+                    )}
+                  </Field>
                   <Field label="Manager">{project.manager?.user.name}</Field>
                   <Field label="Current stage">{project.currentStage?.name}</Field>
                   <Field label="Start date">{fmtDate(project.startDate)}</Field>

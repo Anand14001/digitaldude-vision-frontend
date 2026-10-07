@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Archive,
@@ -23,6 +24,7 @@ import {
   Input,
   LoadingBlock,
   Modal,
+  PageHeader,
   Select,
   Textarea,
 } from '@/components/ui';
@@ -70,9 +72,14 @@ interface StatusDraft {
  * The workflow builder. Workflows are the backbone of the whole CRM - stages
  * drive project boards, retainer cycles and the client portal's progress bar -
  * so this screen is deliberately explicit rather than clever.
+ *
+ * It lives beside Projects rather than inside one: a workflow is shared by many
+ * projects and every retainer cycle, so editing it from within a single project
+ * would invite changing everyone's pipeline while believing you changed one.
  */
-export function WorkflowsTab() {
+export function WorkflowsPage() {
   const queryClient = useQueryClient();
+  const [params, setParams] = useSearchParams();
   const [editing, setEditing] = useState<Workflow | 'new' | null>(null);
   const [duplicating, setDuplicating] = useState<Workflow | null>(null);
 
@@ -80,6 +87,24 @@ export function WorkflowsTab() {
     queryKey: ['workflows', 'all'],
     queryFn: () => apiGet<Workflow[]>('/workflows?includeArchived=true'),
   });
+
+  // /workflows?open=<id> opens that workflow directly, which is how a project
+  // or retainer links to the pipeline it runs on.
+  const openId = params.get('open');
+  useEffect(() => {
+    if (!openId || editing) return;
+    const match = workflows.data?.find((entry) => entry.id === openId);
+    if (match) setEditing(match);
+  }, [openId, editing, workflows.data]);
+
+  const closeEditor = () => {
+    setEditing(null);
+    if (params.has('open')) {
+      const next = new URLSearchParams(params);
+      next.delete('open');
+      setParams(next, { replace: true });
+    }
+  };
 
   const archive = useMutation({
     mutationFn: ({ id, isArchived }: { id: string; isArchived: boolean }) =>
@@ -94,17 +119,16 @@ export function WorkflowsTab() {
   if (workflows.isLoading) return <LoadingBlock />;
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="max-w-2xl text-sm text-muted">
-          A workflow defines the stages work moves through and the task statuses its board uses.
-          Projects move between stages freely — entering a stage can seed a checklist of
-          default tasks.
-        </p>
-        <Button icon={<Plus className="h-4 w-4" />} onClick={() => setEditing('new')}>
-          New workflow
-        </Button>
-      </div>
+    <div>
+      <PageHeader
+        title="Workflows"
+        description="A workflow defines the stages work moves through and the task statuses its board uses. Projects and retainer cycles move between stages freely; entering a stage can seed a checklist of default tasks."
+        actions={
+          <Button icon={<Plus className="h-4 w-4" />} onClick={() => setEditing('new')}>
+            New workflow
+          </Button>
+        }
+      />
 
       {workflows.data?.length === 0 ? (
         <Card>
@@ -215,7 +239,7 @@ export function WorkflowsTab() {
       {editing && (
         <WorkflowBuilder
           workflow={editing === 'new' ? null : editing}
-          onClose={() => setEditing(null)}
+          onClose={closeEditor}
         />
       )}
       {duplicating && (

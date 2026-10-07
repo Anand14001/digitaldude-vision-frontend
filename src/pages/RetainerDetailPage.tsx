@@ -271,7 +271,18 @@ export function RetainerDetailPage() {
                     {retainer.endDate ? fmtDate(retainer.endDate) : 'Open-ended'}
                   </Field>
                   <Field label="Cycle starts on">Day {retainer.cycleStartDay}</Field>
-                  <Field label="Workflow">{retainer.workflow.name}</Field>
+                  <Field label="Workflow">
+                    {can('settings.workflows.manage') ? (
+                      <Link
+                        to={`/workflows?open=${retainer.workflow.id}`}
+                        className="text-primary hover:underline"
+                      >
+                        {retainer.workflow.name}
+                      </Link>
+                    ) : (
+                      retainer.workflow.name
+                    )}
+                  </Field>
                 </FieldGrid>
               </div>
             </Card>

@@ -4,7 +4,6 @@ import { PageHeader, Tab, TabList, TabPanel, Tabs } from '@/components/ui';
 import { OrgSettingsTab } from './OrgSettingsTab';
 import { RolesTab } from './RolesTab';
 import { UsersTab } from './UsersTab';
-import { WorkflowsTab } from './WorkflowsTab';
 import { MastersTab } from './MastersTab';
 
 /**
@@ -18,7 +17,6 @@ export function SettingsPage() {
     { value: 'org', label: 'Organisation', show: can('settings.org.manage') },
     { value: 'roles', label: 'Roles & permissions', show: can('settings.roles.manage') },
     { value: 'users', label: 'Users', show: can('settings.users.manage') },
-    { value: 'workflows', label: 'Workflows', show: can('settings.workflows.manage') },
     { value: 'masters', label: 'Master data', show: can('settings.masters.manage') },
   ].filter((tab) => tab.show);
 
@@ -28,7 +26,7 @@ export function SettingsPage() {
     <div>
       <PageHeader
         title="Settings"
-        description="Roles, workflows and the reference data the rest of the CRM runs on."
+        description="Roles, people and the reference data the rest of the CRM runs on. Workflows have their own screen, next to Projects."
       />
 
       <Tabs value={tab} onChange={setTab}>
@@ -48,9 +46,6 @@ export function SettingsPage() {
         </TabPanel>
         <TabPanel value="users">
           <UsersTab />
-        </TabPanel>
-        <TabPanel value="workflows">
-          <WorkflowsTab />
         </TabPanel>
         <TabPanel value="masters">
           <MastersTab />

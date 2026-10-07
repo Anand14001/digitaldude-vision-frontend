@@ -20,6 +20,7 @@ const TasksPage = lazy(() => import('@/pages/TasksPage').then((m) => ({ default:
 const TaskDetailPage = lazy(() => import('@/pages/TaskDetailPage').then((m) => ({ default: m.TaskDetailPage })));
 const ProjectsPage = lazy(() => import('@/pages/ProjectsPage').then((m) => ({ default: m.ProjectsPage })));
 const ProjectDetailPage = lazy(() => import('@/pages/ProjectDetailPage').then((m) => ({ default: m.ProjectDetailPage })));
+const WorkflowsPage = lazy(() => import('@/pages/WorkflowsPage').then((m) => ({ default: m.WorkflowsPage })));
 const RetainersPage = lazy(() => import('@/pages/RetainersPage').then((m) => ({ default: m.RetainersPage })));
 const RetainerDetailPage = lazy(() => import('@/pages/RetainerDetailPage').then((m) => ({ default: m.RetainerDetailPage })));
 const DeliverablesPage = lazy(() => import('@/pages/DeliverablesPage').then((m) => ({ default: m.DeliverablesPage })));
@@ -169,6 +170,15 @@ export default function App() {
           }
         />
         <Route path="projects/:id" element={<ProjectDetailPage />} />
+
+        <Route
+          path="workflows"
+          element={
+            <RequirePermission permissions={['settings.workflows.manage']}>
+              <WorkflowsPage />
+            </RequirePermission>
+          }
+        />
 
         <Route
           path="retainers"
