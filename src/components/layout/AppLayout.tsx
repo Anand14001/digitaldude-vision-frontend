@@ -38,6 +38,7 @@ import { cn } from '@/lib/utils';
 import type { PermissionKey, SidebarBadges } from '@/types/api';
 import { Avatar, Button, Dropdown, DropdownItem, DropdownSeparator } from '../ui';
 import { ErrorBoundary } from '../ErrorBoundary';
+import { Logo, LogoMark } from '../Logo';
 import { NotificationPanel } from './NotificationPanel';
 import { GlobalSearch } from './GlobalSearch';
 
@@ -247,17 +248,20 @@ export function AppLayout() {
           collapsed && 'justify-center px-2',
         )}
       >
-        <Link to="/" className="flex items-center gap-2.5 overflow-hidden">
-          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-sm font-bold text-primary-fg">
-            DD
-          </span>
-          {!collapsed && (
-            <span className="truncate">
-              <span className="block text-sm font-semibold leading-tight text-fg">
-                Digital Dude
+        <Link
+          to="/"
+          className="flex items-center gap-2.5 overflow-hidden"
+          aria-label="Digital Dude CRM"
+        >
+          {collapsed ? (
+            <LogoMark />
+          ) : (
+            <>
+              <Logo size="md" />
+              <span className="rounded border border-border px-1.5 py-0.5 text-2xs font-semibold uppercase tracking-wide text-muted">
+                CRM
               </span>
-              <span className="block text-2xs leading-tight text-muted">CRM</span>
-            </span>
+            </>
           )}
         </Link>
       </div>
@@ -478,10 +482,8 @@ export function AppLayout() {
 export function FullPageLoader() {
   return (
     <div className="flex h-full items-center justify-center bg-bg">
-      <div className="flex flex-col items-center gap-3">
-        <span className="flex h-11 w-11 animate-pulse items-center justify-center rounded-xl bg-primary text-base font-bold text-primary-fg">
-          DD
-        </span>
+      <div className="flex animate-pulse flex-col items-center gap-3">
+        <Logo size="lg" />
         <p className="text-sm text-muted">Loading your workspace…</p>
       </div>
     </div>

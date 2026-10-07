@@ -16,6 +16,7 @@ import { useAuth } from '@/lib/auth';
 import { useTheme, type ThemeMode } from '@/lib/theme';
 import { cn } from '@/lib/utils';
 import { Avatar, Button, Dropdown, DropdownItem, DropdownSeparator } from '../ui';
+import { Logo, LogoMark } from '../Logo';
 
 const NAV = [
   { to: '/portal', label: 'Overview', icon: LayoutDashboard, end: true },
@@ -61,9 +62,7 @@ export function PortalLayout() {
                 className="h-8 w-8 rounded-lg object-cover ring-1 ring-border"
               />
             ) : (
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-xs font-bold text-primary-fg">
-                DD
-              </span>
+              <LogoMark />
             )}
             <span className="min-w-0">
               <span className="block truncate text-sm font-semibold leading-tight text-fg">
@@ -176,7 +175,10 @@ export function PortalLayout() {
               wedigitaldude@gmail.com
             </a>
           </p>
-          <p className="text-2xs text-subtle">Digital Dude · Your Digital Partner</p>
+          <span className="mt-1 flex items-center gap-2 text-2xs text-subtle">
+            <Logo size="sm" className="opacity-70" />
+            <span>Your Digital Partner</span>
+          </span>
         </div>
       </footer>
     </div>

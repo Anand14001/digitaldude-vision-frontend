@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { Monitor, Moon, Sun } from 'lucide-react';
 import { useTheme, type ThemeMode } from '@/lib/theme';
+import { Logo } from '@/components/Logo';
 import { cn } from '@/lib/utils';
 
 const ICONS: Record<ThemeMode, typeof Sun> = { light: Sun, dark: Moon, system: Monitor };
@@ -56,10 +57,8 @@ export function AuthShell({
 
       <div className="relative w-full max-w-sm">
         <div className="mb-7 flex flex-col items-center text-center">
-          <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-lg font-bold text-primary-fg shadow-sm">
-            DD
-          </span>
-          <h1 className="mt-4 text-xl font-semibold tracking-tight text-fg">{title}</h1>
+          <Logo size="lg" />
+          <h1 className="mt-5 text-xl font-semibold tracking-tight text-fg">{title}</h1>
           {subtitle && <p className="mt-1 text-sm text-muted">{subtitle}</p>}
         </div>
 
