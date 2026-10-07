@@ -118,7 +118,7 @@ const SPECS: MasterSpec[] = [
     endpoint: '/masters/project-roles',
     nameField: 'name',
     description:
-      'What someone does on a project - Video Editor, QA, Copywriter. Descriptive only: access always comes from the person CRM role.',
+      'What someone does on a project - Video Editor, QA, Copywriter. Descriptive only: access always comes from the person Vision role.',
     fields: [
       { key: 'name', label: 'Role', kind: 'text', required: true },
       { key: 'description', label: 'Description', kind: 'text', formOnly: true },

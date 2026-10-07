@@ -287,7 +287,7 @@ export interface ProjectListItem {
   _count: { tasks: number; deliverables: number; files?: number };
 }
 
-/** What someone does on a project. Descriptive only - access comes from their CRM role. */
+/** What someone does on a project. Descriptive only - access comes from their Vision role. */
 export interface ProjectRoleOption {
   id: string;
   name: string;

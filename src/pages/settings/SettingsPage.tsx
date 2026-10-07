@@ -26,7 +26,7 @@ export function SettingsPage() {
     <div>
       <PageHeader
         title="Settings"
-        description="Roles, people and the reference data the rest of the CRM runs on. Workflows have their own screen, next to Projects."
+        description="Roles, people and the reference data the rest of Vision runs on. Workflows have their own screen, next to Projects."
       />
 
       <Tabs value={tab} onChange={setTab}>

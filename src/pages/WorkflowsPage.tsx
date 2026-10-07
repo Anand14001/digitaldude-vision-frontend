@@ -69,7 +69,7 @@ interface StatusDraft {
 }
 
 /**
- * The workflow builder. Workflows are the backbone of the whole CRM - stages
+ * The workflow builder. Workflows are the backbone of the whole product - stages
  * drive project boards, retainer cycles and the client portal's progress bar -
  * so this screen is deliberately explicit rather than clever.
  *

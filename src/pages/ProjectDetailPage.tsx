@@ -667,7 +667,7 @@ function EditTeamModal({
       open
       onClose={onClose}
       title="Project team"
-      description="Roles describe what someone does here. What they can do still comes from their CRM role."
+      description="Roles describe what someone does here. What they can do still comes from their Vision role."
       size="xl"
       footer={
         <>

@@ -1,6 +1,7 @@
-# Digital Dude CRM — web client
+# Vision — web client
 
-React single-page app for the Digital Dude internal CRM, plus the client portal.
+React single-page app for Vision, the Digital Dude internal workspace, plus the
+client portal.
 React 18 + Vite + TypeScript, Tailwind, TanStack Query.
 
 The API is a separate project (`../digital-dude-api`) and is deployed

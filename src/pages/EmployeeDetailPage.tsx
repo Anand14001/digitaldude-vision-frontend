@@ -854,7 +854,7 @@ function EditEmployeeModal({
             />
             {canSetRole ? (
               <Select
-                label="CRM role"
+                label="Vision role"
                 value={form.roleId}
                 onChange={(event) => setForm({ ...form, roleId: event.target.value })}
                 placeholder="No role (no access)"
@@ -863,7 +863,7 @@ function EditEmployeeModal({
               />
             ) : (
               <Input
-                label="CRM role"
+                label="Vision role"
                 value={employee.user.role?.name ?? 'No role'}
                 disabled
                 hint="Needs user administration rights to change."
@@ -1256,7 +1256,7 @@ function OffboardModal({
       open
       onClose={onClose}
       title={`Offboard ${employee.user.name}`}
-      description="Their CRM access ends immediately and open tasks must go somewhere."
+      description="Their Vision access ends immediately and open tasks must go somewhere."
       footer={
         <>
           <Button variant="secondary" onClick={onClose}>

@@ -251,7 +251,7 @@ export function AppLayout() {
         <Link
           to="/"
           className="flex items-center gap-2.5 overflow-hidden"
-          aria-label="Digital Dude CRM"
+          aria-label="Vision"
         >
           {collapsed ? (
             <LogoMark />
@@ -259,7 +259,7 @@ export function AppLayout() {
             <>
               <Logo size="md" />
               <span className="rounded border border-border px-1.5 py-0.5 text-2xs font-semibold uppercase tracking-wide text-muted">
-                CRM
+                Vision
               </span>
             </>
           )}

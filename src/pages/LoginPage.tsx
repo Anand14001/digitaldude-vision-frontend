@@ -44,7 +44,7 @@ export function LoginPage() {
   return (
     <AuthShell
       title="Sign in"
-      subtitle="Welcome back to the Digital Dude workspace."
+      subtitle="Welcome back to Vision, the Digital Dude workspace."
     >
       <form onSubmit={onSubmit} className="space-y-4" noValidate>
         {error && (

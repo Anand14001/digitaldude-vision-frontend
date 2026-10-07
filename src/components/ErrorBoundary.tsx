@@ -45,7 +45,7 @@ export class ErrorBoundary extends Component<Props, State> {
           {this.props.label ?? 'This screen failed to load'}
         </h1>
         <p className="mt-1 max-w-md text-sm text-muted">
-          Something went wrong rendering this page. The rest of the CRM is fine &mdash; try again,
+          Something went wrong rendering this page. The rest of Vision is fine &mdash; try again,
           or move to another screen.
         </p>
 

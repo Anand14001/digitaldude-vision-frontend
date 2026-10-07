@@ -395,7 +395,7 @@ function AddEmployeeModal({ onClose }: { onClose: () => void }) {
       open
       onClose={onClose}
       title="Add employee"
-      description="Creates their CRM account at the same time."
+      description="Creates their Vision account at the same time."
       size="lg"
       footer={
         <>
@@ -433,7 +433,7 @@ function AddEmployeeModal({ onClose }: { onClose: () => void }) {
             onChange={(event) => setForm({ ...form, phone: event.target.value })}
           />
           <Select
-            label="CRM role"
+            label="Vision role"
             value={form.roleId}
             onChange={(event) => setForm({ ...form, roleId: event.target.value })}
             placeholder="No role (no access)"

@@ -83,7 +83,7 @@ export function ProfilePage() {
           <div className="text-sm text-warning">
             <p className="font-medium">Please set a new password</p>
             <p className="mt-0.5 text-xs">
-              Your account was set up with a temporary password. The rest of the CRM unlocks once
+              Your account was set up with a temporary password. The rest of Vision unlocks once
               you have changed it.
             </p>
           </div>
