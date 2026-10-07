@@ -487,6 +487,7 @@ export function DashboardPage() {
           <Card>
             <CardHeader
               title="Recent activity"
+              description="The latest five changes"
               action={
                 <Link to="/logs" className="text-xs font-medium text-primary hover:underline">
                   Full log
@@ -494,7 +495,7 @@ export function DashboardPage() {
               }
             />
             <ul className="divide-y divide-border">
-              {data.recentActivity.map((entry) => (
+              {data.recentActivity.slice(0, 5).map((entry) => (
                 <li key={entry.id} className="px-5 py-2.5">
                   <p className="text-sm text-fg">{entry.summary}</p>
                   <p className="mt-0.5 text-2xs text-subtle">
