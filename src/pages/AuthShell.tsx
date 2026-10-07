@@ -75,11 +75,11 @@ export function AuthShell({
 
 /** Live checklist shown while someone picks a new password. */
 export function PasswordRules({ value }: { value: string }) {
+  // Mirrors validatePasswordStrength in the API; keep the two in step.
   const rules = [
     { label: 'At least 10 characters', ok: value.length >= 10 },
-    { label: 'One lowercase letter', ok: /[a-z]/.test(value) },
-    { label: 'One uppercase letter', ok: /[A-Z]/.test(value) },
-    { label: 'One number', ok: /[0-9]/.test(value) },
+    { label: 'Contains a letter', ok: /[a-zA-Z]/.test(value) },
+    { label: 'Contains a number', ok: /[0-9]/.test(value) },
   ];
 
   return (
@@ -106,4 +106,4 @@ export function PasswordRules({ value }: { value: string }) {
 }
 
 export const passwordIsValid = (value: string) =>
-  value.length >= 10 && /[a-z]/.test(value) && /[A-Z]/.test(value) && /[0-9]/.test(value);
+  value.length >= 10 && /[a-zA-Z]/.test(value) && /[0-9]/.test(value);
