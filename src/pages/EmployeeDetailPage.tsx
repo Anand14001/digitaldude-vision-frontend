@@ -12,14 +12,24 @@ import {
   Plus,
   ShieldAlert,
   Target,
+  Trash2,
+  Upload,
   UserMinus,
   Wallet,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { apiGet, apiPatch, apiPost, apiPut, errorMessage } from '@/lib/api';
+import {
+  apiDelete,
+  apiGet,
+  apiPatch,
+  apiPost,
+  apiPut,
+  apiUpload,
+  errorMessage,
+} from '@/lib/api';
 import { useAuth } from '@/lib/auth';
-import { cn, fmtCurrency, fmtDate, humanise } from '@/lib/utils';
-import type { EmployeeDetail, MasterRecord } from '@/types/api';
+import { cn, fileSize, fmtCurrency, fmtDate, humanise } from '@/lib/utils';
+import type { EmployeeDetail, FileObject, MasterRecord } from '@/types/api';
 import {
   Avatar,
   Badge,
@@ -28,6 +38,7 @@ import {
   CardHeader,
   Checkbox,
   ColourBadge,
+  ConfirmDialog,
   EmptyState,
   ErrorState,
   Field,
@@ -60,6 +71,10 @@ export function EmployeeDetailPage() {
   const [addingSkills, setAddingSkills] = useState(false);
   const [addingCompensation, setAddingCompensation] = useState(false);
   const [assigningAsset, setAssigningAsset] = useState(false);
+  const [addingDocument, setAddingDocument] = useState(false);
+  const [removingDocument, setRemovingDocument] = useState<{ id: string; title: string } | null>(
+    null,
+  );
 
   const { data: employee, isLoading, error, refetch } = useQuery({
     queryKey: ['employee', id],
@@ -508,9 +523,36 @@ export function EmployeeDetailPage() {
         {employee.documents && (
           <TabPanel value="documents">
             <Card>
-              <CardHeader title="Documents" description="Contracts, IDs and letters" />
+              <CardHeader
+                title="Documents"
+                description="Contracts, IDs and letters. An expiry date triggers a reminder 30 days out."
+                action={
+                  can('employees.documents.manage') ? (
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      icon={<Upload className="h-3.5 w-3.5" />}
+                      onClick={() => setAddingDocument(true)}
+                    >
+                      Add document
+                    </Button>
+                  ) : undefined
+                }
+              />
               {employee.documents.length === 0 ? (
-                <EmptyState compact icon={<FileText className="h-5 w-5" />} title="No documents" />
+                <EmptyState
+                  compact
+                  icon={<FileText className="h-5 w-5" />}
+                  title="No documents"
+                  description="Offer letters, contracts, ID and address proof."
+                  action={
+                    can('employees.documents.manage') ? (
+                      <Button size="sm" onClick={() => setAddingDocument(true)}>
+                        Add document
+                      </Button>
+                    ) : undefined
+                  }
+                />
               ) : (
                 <ul className="divide-y divide-border">
                   {employee.documents.map((document) => (
@@ -540,6 +582,17 @@ export function EmployeeDetailPage() {
                         >
                           Expires {fmtDate(document.expiresAt, 'dd MMM yy')}
                         </Badge>
+                      )}
+                      {can('employees.documents.manage') && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          aria-label={`Delete ${document.title}`}
+                          icon={<Trash2 className="h-3.5 w-3.5" />}
+                          onClick={() =>
+                            setRemovingDocument({ id: document.id, title: document.title })
+                          }
+                        />
                       )}
                     </li>
                   ))}
@@ -641,6 +694,14 @@ export function EmployeeDetailPage() {
       {assigningAsset && (
         <AssignAssetModal employeeId={employee.id} onClose={() => setAssigningAsset(false)} />
       )}
+      {addingDocument && (
+        <AddDocumentModal employeeId={employee.id} onClose={() => setAddingDocument(false)} />
+      )}
+      <RemoveDocumentDialog
+        document={removingDocument}
+        employeeId={employee.id}
+        onClose={() => setRemovingDocument(null)}
+      />
     </div>
   );
 }
@@ -959,6 +1020,169 @@ function EditEmployeeModal({
         )}
       </div>
     </Modal>
+  );
+}
+
+
+const DOCUMENT_TYPES = [
+  'OFFER_LETTER',
+  'CONTRACT',
+  'ID_PROOF',
+  'ADDRESS_PROOF',
+  'EDUCATION',
+  'PAYSLIP',
+  'NDA',
+  'OTHER',
+] as const;
+
+/** Types that normally carry an expiry, so the form can prompt for one. */
+const EXPIRING_TYPES = new Set(['CONTRACT', 'ID_PROOF', 'NDA']);
+
+/**
+ * Uploads a file, then records it against the employee. Two steps because the
+ * API keeps file storage separate from what a file means - the same upload
+ * endpoint serves avatars, deliverables and task attachments.
+ */
+function AddDocumentModal({
+  employeeId,
+  onClose,
+}: {
+  employeeId: string;
+  onClose: () => void;
+}) {
+  const queryClient = useQueryClient();
+  const [file, setFile] = useState<File | null>(null);
+  const [form, setForm] = useState({ type: 'OFFER_LETTER', title: '', expiresAt: '' });
+
+  const save = useMutation({
+    mutationFn: async () => {
+      if (!file) throw new Error('Choose a file first');
+      const [uploaded] = await apiUpload<FileObject[]>('/files', [file], {
+        folder: 'documents',
+      });
+      if (!uploaded) throw new Error('Upload failed');
+      return apiPost(`/employees/${employeeId}/documents`, {
+        type: form.type,
+        title: form.title.trim() || file.name,
+        fileId: uploaded.id,
+        expiresAt: form.expiresAt || null,
+      });
+    },
+    onSuccess: () => {
+      toast.success('Document added');
+      void queryClient.invalidateQueries({ queryKey: ['employee', employeeId] });
+      onClose();
+    },
+    onError: (caught) => toast.error(errorMessage(caught)),
+  });
+
+  return (
+    <Modal
+      open
+      onClose={onClose}
+      title="Add a document"
+      description="Stored against this employee and visible only to those who manage documents."
+      footer={
+        <>
+          <Button variant="secondary" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button loading={save.isPending} disabled={!file} onClick={() => save.mutate()}>
+            Add document
+          </Button>
+        </>
+      }
+    >
+      <div className="space-y-4">
+        <div>
+          <span className="dd-label">
+            File<span className="ml-0.5 text-danger">*</span>
+          </span>
+          <input
+            type="file"
+            accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx,.xls,.xlsx"
+            onChange={(event) => {
+              const chosen = event.target.files?.[0] ?? null;
+              setFile(chosen);
+              // Default the title to the file name, which is usually right.
+              if (chosen && !form.title) {
+                setForm((current) => ({
+                  ...current,
+                  title: chosen.name.replace(/\.[^.]+$/, ''),
+                }));
+              }
+            }}
+            className="dd-input file:mr-3 file:rounded-md file:border-0 file:bg-primary-soft file:px-3 file:py-1 file:text-xs file:font-medium file:text-primary"
+          />
+          {file && (
+            <p className="dd-hint">
+              {file.name} &middot; {fileSize(file.size)}
+            </p>
+          )}
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Select
+            label="Type"
+            value={form.type}
+            onChange={(event) => setForm({ ...form, type: event.target.value })}
+            options={DOCUMENT_TYPES.map((value) => ({ value, label: humanise(value) }))}
+          />
+          <Input
+            label="Expires on"
+            type="date"
+            value={form.expiresAt}
+            onChange={(event) => setForm({ ...form, expiresAt: event.target.value })}
+            hint={
+              EXPIRING_TYPES.has(form.type)
+                ? 'A reminder goes out 30 days before.'
+                : 'Optional.'
+            }
+          />
+        </div>
+
+        <Input
+          label="Title"
+          value={form.title}
+          onChange={(event) => setForm({ ...form, title: event.target.value })}
+          placeholder="Defaults to the file name"
+        />
+      </div>
+    </Modal>
+  );
+}
+
+function RemoveDocumentDialog({
+  document,
+  employeeId,
+  onClose,
+}: {
+  document: { id: string; title: string } | null;
+  employeeId: string;
+  onClose: () => void;
+}) {
+  const queryClient = useQueryClient();
+
+  const remove = useMutation({
+    mutationFn: () => apiDelete(`/employees/documents/${document?.id}`),
+    onSuccess: () => {
+      toast.success('Document deleted');
+      void queryClient.invalidateQueries({ queryKey: ['employee', employeeId] });
+      onClose();
+    },
+    onError: (caught) => toast.error(errorMessage(caught)),
+  });
+
+  return (
+    <ConfirmDialog
+      open={Boolean(document)}
+      onClose={onClose}
+      onConfirm={() => remove.mutate()}
+      title="Delete this document?"
+      message={`"${document?.title}" will be removed from this employee's record. The deletion is recorded in the activity log.`}
+      confirmLabel="Delete document"
+      loading={remove.isPending}
+    />
   );
 }
 
