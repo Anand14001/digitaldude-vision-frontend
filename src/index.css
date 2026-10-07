@@ -1,0 +1,167 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/**
+ * Design tokens. Light is the default; `.dark` on <html> redefines the same
+ * names, which is what makes the three theme modes (light / dark / system) a
+ * single class toggle rather than a second set of styles.
+ */
+@layer base {
+  :root {
+    --bg: 246 247 250;
+    --surface: 255 255 255;
+    --surface-2: 248 250 252;
+    --border: 229 233 240;
+    --border-strong: 203 213 225;
+    --fg: 15 23 42;
+    --muted: 100 116 139;
+    --subtle: 148 163 184;
+
+    --primary: 79 70 229;
+    --primary-fg: 255 255 255;
+    --primary-soft: 238 242 255;
+
+    --success: 22 163 74;
+    --success-soft: 240 253 244;
+    --warning: 217 119 6;
+    --warning-soft: 255 251 235;
+    --danger: 220 38 38;
+    --danger-soft: 254 242 242;
+    --info: 2 132 199;
+    --info-soft: 240 249 255;
+
+    color-scheme: light;
+  }
+
+  .dark {
+    --bg: 9 11 18;
+    --surface: 17 20 30;
+    --surface-2: 24 28 40;
+    --border: 38 44 60;
+    --border-strong: 55 63 83;
+    --fg: 237 241 248;
+    --muted: 148 160 180;
+    --subtle: 107 118 138;
+
+    --primary: 129 124 255;
+    --primary-fg: 12 14 22;
+    --primary-soft: 31 31 66;
+
+    --success: 52 199 123;
+    --success-soft: 15 40 29;
+    --warning: 245 171 53;
+    --warning-soft: 46 33 10;
+    --danger: 248 113 113;
+    --danger-soft: 50 20 22;
+    --info: 56 178 232;
+    --info-soft: 11 36 51;
+
+    color-scheme: dark;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-bg text-fg antialiased;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  }
+
+  /* Visible, consistent focus ring for keyboard users on every interactive element. */
+  :focus-visible {
+    @apply outline-none ring-2 ring-primary/60 ring-offset-2 ring-offset-bg;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply rounded-full bg-border-strong;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-subtle;
+  }
+
+  /* Date inputs are unreadable in dark mode without this. */
+  .dark input[type='date']::-webkit-calendar-picker-indicator,
+  .dark input[type='datetime-local']::-webkit-calendar-picker-indicator,
+  .dark input[type='time']::-webkit-calendar-picker-indicator {
+    filter: invert(0.8);
+  }
+}
+
+@layer components {
+  .dd-card {
+    @apply rounded-xl border border-border bg-surface shadow-card;
+  }
+
+  .dd-input {
+    @apply w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-fg
+      placeholder:text-subtle focus:border-primary focus:outline-none focus:ring-2
+      focus:ring-primary/25 disabled:cursor-not-allowed disabled:bg-surface-2
+      disabled:text-muted;
+  }
+
+  .dd-label {
+    @apply mb-1.5 block text-sm font-medium text-fg;
+  }
+
+  .dd-hint {
+    @apply mt-1 text-xs text-muted;
+  }
+
+  .dd-error {
+    @apply mt-1 text-xs text-danger;
+  }
+
+  .dd-th {
+    @apply whitespace-nowrap px-4 py-3 text-left text-2xs font-semibold uppercase
+      tracking-wider text-muted;
+  }
+
+  .dd-td {
+    @apply px-4 py-3 text-sm text-fg;
+  }
+
+  .dd-row {
+    @apply border-t border-border transition-colors hover:bg-surface-2;
+  }
+
+  .dd-skeleton {
+    @apply animate-pulse rounded-md bg-surface-2;
+  }
+
+  /* Horizontal board columns that scroll as a group. */
+  .dd-board {
+    @apply flex gap-4 overflow-x-auto pb-4;
+    scroll-snap-type: x proximity;
+  }
+
+  .dd-board > * {
+    scroll-snap-align: start;
+  }
+}
+
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
